@@ -33,7 +33,7 @@ export default function BackgroundScene(){
     const points:number[]=[];for(let i=0;i<(compact?70:160);i++){const side=i%2?1:-1;points.push(side*(3.8+(i*17%100)/100*3),((i*31%100)/100-.5)*12,-(i%7));}
     const dustGeometry=geom(new THREE.BufferGeometry());dustGeometry.setAttribute('position',new THREE.Float32BufferAttribute(points,3));
     const dust=new THREE.Points(dustGeometry,mat(new THREE.PointsMaterial({color:0xbfa4ff,size:.022,transparent:true,opacity:.45,depthWrite:false})));scene.add(dust);
-    scene.add(new THREE.AmbientLight(0xa08dd7,2));const light=new THREE.PointLight(theme==='purple'?0xa685ff:0x786bff,45,30);light.position.set(2,3,6);scene.add(light);
+    scene.add(new THREE.AmbientLight(theme==='purple'?0xa08dd7:0xffffff,2.3));const light=new THREE.PointLight(theme==='purple'?0xa685ff:0x3048ff,45,30);light.position.set(2,3,6);scene.add(light);
     let edge=5;const resize=()=>{const w=el.clientWidth,h=el.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();edge=Math.tan(Math.PI/8)*12*camera.aspect*.94;};
     const observer=new ResizeObserver(resize);observer.observe(el);resize();
     const motionChange=()=>{reduced=motion.matches;};motion.addEventListener('change',motionChange);

@@ -79,3 +79,7 @@ Current revision: the production Next.js build and static export compile success
 `npm run check` checks TypeScript. `npm run test:rehearsal` tests the real local HTTP API, including concurrent quota enforcement, deduplication, pause, authorised controls, wrong-code rejection, launch freeze, reset and foreign-origin rejection. It only permits loopback origins and leaves a fresh 100-activation rehearsal. Pass `http://localhost:5174` to test the Worker API. `node scripts/check-routing.mjs` verifies four-host URL mapping.
 
 Original logo assets are retained in `../LOGOS`; served copies are in `public/logos`.
+
+## Supabase on Vercel
+
+The Vercel API now uses a shared Supabase store. Follow [SUPABASE-SETUP.md](SUPABASE-SETUP.md) to create the project, run the migration, set server-only credentials, and redeploy. All four event domains share one database. `npm run test:supabase` validates the migration and event flow against embedded PostgreSQL. Vercel refuses SQLite fallback; older local-SQLite deployment notes above apply only to a persistent local Node server, not Vercel.

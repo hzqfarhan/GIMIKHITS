@@ -12,8 +12,11 @@ export function brandMaterial<T extends {dispose: () => void}>(value: T, theme: 
     if (hsl.s < .08) continue;
     // Cyan energy becomes red; violet structures become the logo's indigo.
     const red = hsl.h < .58 || hsl.h > .82;
-    color.set(red ? '#fe0008' : '#2e1fa8');
-    if (theme === 'hits-dark' && field === 'color') color.lerp(new THREE.Color('#ffffff'), hsl.l > .65 ? .38 : .08);
+    const luminous = material.blending === THREE.AdditiveBlending;
+    // Keep saturated indigo surfaces, blue edge light, and red energy accents.
+    // Mixing every material with white made the dark theme drift back to lilac.
+    color.set(red ? '#fe0008' : luminous && hsl.l > .5 ? '#364dff' : '#2e1fa8');
+    if (theme === 'hits-dark' && field === 'color' && red && luminous) color.set('#ff2539');
   }
   if (theme === 'hits-light' && material.blending === THREE.AdditiveBlending) material.blending = THREE.NormalBlending;
   return value;

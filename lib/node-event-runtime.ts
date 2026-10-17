@@ -2,6 +2,7 @@ import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
 import { mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { EventRuntime, EventStatement, EventStore } from './event-store';
+import { createSupabaseStore } from './supabase-event-store';
 
 class Statement implements EventStatement {
   constructor(private db: DatabaseSync, private sql: string, private values: SQLInputValue[] = []) {}
@@ -44,6 +45,12 @@ function localSecret() {
 
 const globalRuntime = globalThis as typeof globalThis & { __hitsStore?: EventStore };
 export function nodeEventRuntime(): EventRuntime {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (url || key || process.env.VERCEL) {
+    if (!url || !key) throw new Error('Configure SUPABASE_URL and SUPABASE_SECRET_KEY on Vercel; local SQLite is disabled there');
+    return { DB: createSupabaseStore(url, key), ORGANISER_KEY: process.env.ORGANISER_KEY, EVENT_BASE_DOMAIN: process.env.EVENT_BASE_DOMAIN };
+  }
   globalRuntime.__hitsStore ??= createStore();
   return { DB: globalRuntime.__hitsStore, ORGANISER_KEY: localSecret(), EVENT_BASE_DOMAIN: process.env.EVENT_BASE_DOMAIN };
 }

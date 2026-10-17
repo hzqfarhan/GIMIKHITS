@@ -57,7 +57,7 @@ async function POST(r: Request) {
     if (!body || typeof body.action!=='string') return json({error:'Invalid request.'},400);
     if (body.action === 'login') {
       if (!runtime.ORGANISER_KEY) return json({error:'Set the ORGANISER_KEY server secret before arming the stage.'},503);
-      const ip = r.headers.get('cf-connecting-ip') || 'local';
+      const ip = r.headers.get('x-vercel-forwarded-for')?.split(',')[0].trim() || r.headers.get('cf-connecting-ip') || 'local';
       const bucket = `${ip}:${Math.floor(Date.now()/300000)}`;
       await runtime.DB.prepare('INSERT INTO login_attempts (bucket, attempts) VALUES (?,1) ON CONFLICT(bucket) DO UPDATE SET attempts=attempts+1').bind(bucket).run();
       const attempts = await runtime.DB.prepare('SELECT attempts FROM login_attempts WHERE bucket=?').bind(bucket).first<{attempts:number}>();

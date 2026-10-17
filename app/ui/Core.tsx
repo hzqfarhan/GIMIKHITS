@@ -36,7 +36,7 @@ export default function Core({ progress = 0, ignition = false, phase = 'idle', i
     renderer.setClearColor(0x000000, 0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.2;
+    renderer.toneMappingExposure = theme === 'purple' ? 1.2 : theme === 'hits-light' ? .95 : 1.05;
     el.appendChild(renderer.domElement);
 
     const geometries = new Set<Disposable>();
@@ -134,9 +134,23 @@ export default function Core({ progress = 0, ignition = false, phase = 'idle', i
       contours.forEach(points=>{paths.moveTo(points[0][0],points[0][1]);points.slice(1).forEach(([x,y])=>paths.lineTo(x,y));paths.currentPath.closePath();});
       const shapes=paths.toShapes();if(!shapes.length)return;
       const sculptedGeometry=geometry(new THREE.ExtrudeGeometry(shapes,{depth:.18,bevelEnabled:false,steps:1,curveSegments:2}));
-      const face=material(new THREE.MeshStandardMaterial({color:0xd5d9ff,metalness:.58,roughness:.24,emissive:0x53417d,emissiveIntensity:.45}));
+      // Project the actual artwork onto the extruded silhouette, preserving the
+      // red-to-blue circuit symbol instead of painting every letter one colour.
+      if(theme !== 'purple') {
+        const positions=sculptedGeometry.getAttribute('position');
+        const uv=sculptedGeometry.getAttribute('uv');
+        for(let i=0;i<positions.count;i++) uv.setXY(i,positions.getX(i)/2.15+.5,positions.getY(i)/(2.15*560/1040)+.5);
+        uv.needsUpdate=true;
+      }
+      const face=theme === 'purple' ? material(new THREE.MeshStandardMaterial({color:0xd5d9ff,metalness:.58,roughness:.24,emissive:0x53417d,emissiveIntensity:.45})) : logoMaterial;
       const side=material(new THREE.MeshStandardMaterial({color:0x7752c4,metalness:.72,roughness:.26,emissive:0x432b77,emissiveIntensity:.5}));
       const sculpted=new THREE.Mesh(sculptedGeometry,[face,side]);badge.add(sculpted);
+      if(theme === 'hits-dark') {
+        const rim=material(new THREE.LineBasicMaterial({color:0xe2e8ff,transparent:true,opacity:.7}));
+        // The neutral rim separates the original dark ink from the dark reactor.
+        rim.color.set(0xe2e8ff);
+        badge.add(new THREE.LineSegments(geometry(new THREE.EdgesGeometry(sculptedGeometry)),rim));
+      }
       badgeBase.visible=false;badgeOutline.visible=false;logoFace.visible=false;contourLoaded=true;
     }).catch(()=>{/* The supplied artwork remains on the low-poly badge if tracing is unavailable. */});
     heart.visible=false;
@@ -285,7 +299,7 @@ export default function Core({ progress = 0, ignition = false, phase = 'idle', i
       const y = 1 - index / Math.max(1, starsCount - 1) * 2;
       const spread = Math.sqrt(1 - y * y);
       starPositions.set([Math.cos(a) * spread * r * 1.4, y * r, Math.sin(a) * spread * r - 1.8], index * 3);
-      tint.set(index % 5 === 0 ? 0x69dbe9 : index % 3 === 0 ? 0xe4a5e9 : 0xa494e6);
+      tint.set(theme === 'purple' ? (index % 5 === 0 ? 0x69dbe9 : index % 3 === 0 ? 0xe4a5e9 : 0xa494e6) : (index % 5 === 0 ? 0xfe0008 : theme === 'hits-light' ? 0x2e1fa8 : 0xaaa7ff));
       starColors.set([tint.r, tint.g, tint.b], index * 3);
     }
     const starsGeometry = geometry(new THREE.BufferGeometry());
@@ -314,10 +328,10 @@ export default function Core({ progress = 0, ignition = false, phase = 'idle', i
     );
     shockwave.visible = false;
     scene.add(shockwave);
-    scene.add(new THREE.AmbientLight(0xa18fe8, 2.2));
+    scene.add(new THREE.AmbientLight(theme === 'purple' ? 0xa18fe8 : 0xffffff, theme === 'hits-light' ? 2.6 : 2.2));
     const cyanLight = new THREE.PointLight(theme === 'purple' ? 0x82eeff : 0xfe0008, 24, 14);
     cyanLight.position.set(2, 2.5, 3);
-    const violetLight = new THREE.PointLight(theme === 'purple' ? 0xc851ff : 0x6555ef, 28, 14);
+    const violetLight = new THREE.PointLight(theme === 'purple' ? 0xc851ff : 0x3048ff, 28, 14);
     violetLight.position.set(-2.5, -1, 2.5);
     scene.add(cyanLight, violetLight);
 
@@ -414,8 +428,8 @@ export default function Core({ progress = 0, ignition = false, phase = 'idle', i
       edgesMaterial.opacity = Math.min(1, 0.72 + charge * 0.16);
       nucleusGlow.scale.setScalar(1.35 + charge * 0.8);
       innerAura.scale.setScalar(3.15 + charge * 0.55);
-      innerAura.material.opacity = 0.55 + Math.min(charge, 1.7) * 0.12;
-      aura.material.opacity = 0.36 + charge * 0.13;
+      innerAura.material.opacity = (0.55 + Math.min(charge, 1.7) * 0.12) * (theme === 'hits-light' ? .32 : 1);
+      aura.material.opacity = (0.36 + charge * 0.13) * (theme === 'hits-light' ? .25 : theme === 'hits-dark' ? .85 : 1);
 
       const alignment = Math.min(power, 1);
       orbits.forEach((orbit, index) => {

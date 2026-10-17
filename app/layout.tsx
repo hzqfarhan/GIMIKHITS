@@ -5,6 +5,7 @@ import './glitch.css';
 import './showcase.css';
 import './viewport.css';
 import './themes.css';
+import './launch-effects.css';
 import ThemeProvider from './ui/ThemeProvider';
 export const metadata: Metadata = {
   title: 'HITS × IUIC | Ignite the extraordinary',

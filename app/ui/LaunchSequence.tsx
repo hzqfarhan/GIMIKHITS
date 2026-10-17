@@ -1,5 +1,6 @@
 'use client';
 import dynamic from 'next/dynamic';
+import type { CSSProperties } from 'react';
 import { Check, Fingerprint, Play, ArrowUpRight } from 'lucide-react';
 import { HitsLogo, PROGRAMS } from './Brand';
 import { SEQUENCE_SECONDS } from './useLaunch';
@@ -18,6 +19,13 @@ export default function LaunchSequence({ elapsed, placeholder, bypassUrl }: { el
   return <section className={`cinematic phase-${phase} ${reveal ? 'logo-revealed' : ''} ${videoTime ? 'is-placeholder' : ''}`} aria-label="HITS launch sequence">
     <div className="cinematic-grid" aria-hidden="true"/>
     <TechBackground cinematic/>
+    {!videoTime && <div className={`launch-effects effects-${phase}`} aria-hidden="true">
+      <div className="launch-iris"><i/><i/><i/></div>
+      <div className="launch-rails">{Array.from({length:8},(_,i)=><i key={i} style={{'--rail-angle':`${i*45}deg`,'--rail-delay':`${i*-.4}s`} as CSSProperties}/>)}</div>
+      <div className="launch-gate" key={`gate-${phase}`}><i/><i/></div>
+      {phase==='burst'&&<div className="launch-fragments">{Array.from({length:18},(_,i)=><i key={i} style={{'--fragment-angle':`${i*20}deg`,'--fragment-distance':`${32+i%4*8}vmin`,'--fragment-delay':`${i%3*.07}s`} as CSSProperties}/>)}</div>}
+      <div className="launch-side-meter left"><i/><i/><i/><i/><i/></div><div className="launch-side-meter right"><i/><i/><i/><i/><i/></div>
+    </div>}
     {!videoTime && <div className={`phase-handoff handoff-${phase}`} key={`handoff-${phase}`} aria-hidden="true"><i/><i/><span>{phase==='verify'?'AUTHORISING':phase==='assemble'?'CONNECTING':phase==='charge'?'SYNCHRONISING':phase==='countdown'?'IGNITION ARMED':'HITS ONLINE'}</span></div>}
     {!videoTime && <div className="cinematic-scene"><Core progress={1} ignition phase={phase} intensity={phase === 'charge' ? Math.min(1,.5+(elapsed - 7)/10) : undefined}/></div>}
     <div className="cinematic-vignette" aria-hidden="true"/>

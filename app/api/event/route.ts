@@ -11,5 +11,11 @@ function publicRequest(request: Request) {
   if (protocol === 'https' || protocol === 'http') url.protocol = `${protocol}:`;
   return new Request(url,request);
 }
-export async function GET(request: Request) { return createEventHandler(nodeEventRuntime()).GET(publicRequest(request)); }
-export async function POST(request: Request) { return createEventHandler(nodeEventRuntime()).POST(publicRequest(request)); }
+async function handle(request: Request, method: 'GET' | 'POST') {
+  try { return await createEventHandler(nodeEventRuntime())[method](publicRequest(request)); }
+  catch {
+    return Response.json({error:'The shared event database is not configured. Check the Supabase environment variables and migration.'}, {status:503,headers:{'Cache-Control':'no-store'}});
+  }
+}
+export async function GET(request: Request) { return handle(request, 'GET'); }
+export async function POST(request: Request) { return handle(request, 'POST'); }

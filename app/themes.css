@@ -63,3 +63,53 @@ html[data-theme=hits-light] .digital-noise{opacity:.1}
 html[data-theme=hits-light] :is(.countdown-orbit,.charge-orbit){border-color:var(--hits-border)}
 html[data-theme=hits-light] .offline-banner{background:#fff0ed;color:#932010}
 @media(max-width:540px){.theme-toolbar{min-height:33px;padding:3px 0;justify-content:center}.theme-toolbar>span{display:none}.theme-toggle button{font-size:8px;padding:5px 10px}.theme-toggle{gap:4px}}
+html[data-theme^=hits-] .cinematic-copy h2 em{background:var(--hits-gradient);background-clip:text;-webkit-background-clip:text}
+html[data-theme^=hits-] :is(.verification-steps,.verification-steps svg,.scan-fingerprint,.charge-readout>span,.charge-readout strong small,.reveal-signature b,.reveal-programs,.sequence-timeline span,.sequence-timeline .complete,.sequence-return,.cinematic-topline span:first-child){color:var(--muted)}
+html[data-theme^=hits-] .cinematic-topline span:last-child{color:var(--hits-signal)}
+html[data-theme^=hits-] .scan-fingerprint{background:var(--hits-soft);border-color:var(--hits-border)}
+html[data-theme^=hits-] .charge-readout i{background:var(--hits-gradient);box-shadow:0 0 15px var(--hits-glow)}
+html[data-theme=hits-light] .countdown-orbit{background:radial-gradient(circle,#e9e9fa88,transparent 73%)}
+.view-qr>.qr-only.qr-showcase{height:calc(100% - 36px)}
+@media(max-width:540px){.view-qr>.qr-only.qr-showcase{height:calc(100% - 33px)}}
+
+/* HITS refinement: original indigo ink, electric-blue structure, red signals. */
+html[data-theme=hits-light]{--bg:#f7f8fc;--hits-glow:#2e1fa818;--hits-soft:#eceefa;--hits-border:#2e1fa833;--hits-accent:#2e1fa8;--hits-gradient:linear-gradient(125deg,#2e1fa8,#243ce5 65%,#d80b2c)}
+html[data-theme=hits-dark]{--bg:#050817;--surface:#0c132b;--hits-glow:#263cef33;--hits-soft:#111b3c;--hits-accent:#a4b5ff;--purple:#a4b5ff;--hits-border:#3f60e75c;--hits-gradient:linear-gradient(125deg,#2e1fa8,#243ce5 65%,#fe0008)}
+html[data-theme=hits-light] .experience{background:radial-gradient(ellipse at 51% 37%,#3048ff0d,transparent 43%),radial-gradient(ellipse at 93% 75%,#fe000807,transparent 35%),#f7f8fc}
+html[data-theme=hits-dark] .experience{background:radial-gradient(ellipse at 51% 37%,#15256b66,transparent 47%),radial-gradient(ellipse at 93% 75%,#fe00080b,transparent 33%),#050817}
+/* Outline the artwork itself, with no rectangular backing or recolouring. */
+html[data-theme=hits-dark] .hits-mark{filter:drop-shadow(1px 0 0 #d7e1ffcc) drop-shadow(-1px 0 0 #d7e1ff99) drop-shadow(0 1px 0 #d7e1ffaa) drop-shadow(0 -1px 0 #d7e1ff88) drop-shadow(0 0 15px #3048ff99)!important}
+html[data-theme=hits-light] .hits-mark{filter:drop-shadow(0 2px 1px #ffffff) drop-shadow(0 5px 12px #2e1fa81c)!important}
+html[data-theme^=hits-] .brand-lockup>.hits-mark{width:94px;height:48px}
+html[data-theme^=hits-] .view-main .stage-main:not(.stage-ready) .hero-logo-carousel{width:min(100%,260px)}
+html[data-theme^=hits-] .hero-logo-window{height:clamp(78px,15dvh,155px)}
+html[data-theme^=hits-] .hero-logo-controls{color:var(--hits-accent);font-weight:600}
+html[data-theme^=hits-] .circuit-base{stroke:#2e1fa8;opacity:.45}
+html[data-theme^=hits-] .circuit-signal{stroke:#2449ff;filter:drop-shadow(0 0 4px #3048ff88)}
+html[data-theme^=hits-] .tech-circuits g:nth-child(3n) .circuit-signal{stroke:#fe0008;filter:drop-shadow(0 0 4px #fe000866)}
+html[data-theme^=hits-] .circuit-node circle:first-child{fill:var(--bg);stroke:#3048ff;opacity:.65}
+html[data-theme^=hits-] .circuit-node circle:last-child{fill:#fe0008;opacity:.8}
+html[data-theme^=hits-] .tech-horizon{background-image:linear-gradient(#3048ff19 1px,transparent 1px),linear-gradient(90deg,#2e1fa819 1px,transparent 1px)}
+html[data-theme^=hits-] .tech-scan{background-image:linear-gradient(180deg,transparent 48%,#3048ff05 49.8%,#3048ff22 50%,transparent 50.2%)}
+html[data-theme^=hits-] .tech-strip i{background:#2e1fa824}
+html[data-theme^=hits-] .tech-strip i:after{background:linear-gradient(transparent,#3048ff,transparent);box-shadow:0 0 14px #3048ff66}
+html[data-theme^=hits-] .tech-strip i:nth-child(2):after{background:linear-gradient(transparent,#fe0008,transparent);box-shadow:0 0 14px #fe000844}
+html[data-theme^=hits-] .tech-orbital,html[data-theme^=hits-] .tech-orbital:before{border-color:#3048ff26}
+html[data-theme^=hits-] .tech-orbital:after{border-color:#2e1fa826;border-top-color:#fe000855}
+html[data-theme^=hits-] .tech-edge-label{color:var(--hits-accent)}
+html[data-theme^=hits-] .tech-grain{background:repeating-linear-gradient(0deg,transparent 0 3px,#2e1fa806 4px)}
+html[data-theme^=hits-] .site-header:after{background:linear-gradient(90deg,transparent,#3048ff,#fe0008,transparent)}
+html[data-theme^=hits-] .digital-noise{background:repeating-linear-gradient(90deg,#3048ff22 0 3px,transparent 3px 11px),repeating-linear-gradient(0deg,transparent 0 5px,var(--bg) 5px 8px)}
+html[data-theme^=hits-] .phase-handoff>i{background:linear-gradient(90deg,transparent,#3048ffaa,#fe000899,transparent);box-shadow:0 0 22px #3048ff33}
+html[data-theme^=hits-] .phase-handoff>span{color:var(--hits-accent)}
+html[data-theme^=hits-] .glass-cube i{border-color:#3048ff66;background:linear-gradient(145deg,#2e1fa81a,#3048ff04)}
+html[data-theme^=hits-] .glass-cube i:nth-child(3n){border-color:#fe00084d}
+html[data-theme^=hits-] .debris-position>span{border-color:#3048ff44}
+html[data-theme^=hits-] .energy-column-fill{background:linear-gradient(to top,#2e1fa8,#2449ff 68%,#fe0008);box-shadow:0 0 25px #3048ff55}
+html[data-theme^=hits-] :is(.core-halo,.view-main .stage-main:not(.stage-ready) .core-halo){background:radial-gradient(ellipse at 40% 40%,#3048ff26,transparent 58%),radial-gradient(ellipse at 68% 62%,#fe000815,transparent 55%)!important}
+html[data-theme=hits-light] :is(.core-floor,.view-main .stage-main:not(.stage-ready) .core-floor){background:radial-gradient(ellipse,#2e1fa84d,transparent 68%)!important}
+html[data-theme=hits-dark] :is(.core-floor,.view-main .stage-main:not(.stage-ready) .core-floor){background:radial-gradient(ellipse,#3048ff66,transparent 68%)!important}
+html[data-theme=hits-dark] .circuit-base{stroke:#4263ff;opacity:.38}
+html[data-theme=hits-light] .tech-circuits{opacity:.6}
+html[data-theme=hits-dark] .tech-circuits{opacity:.8}
+@media(max-width:540px){html[data-theme^=hits-] .brand-lockup>.hits-mark{width:65px;height:36px}html[data-theme^=hits-] .view-main .stage-main:not(.stage-ready) .hero-logo-carousel{width:42%}html[data-theme^=hits-] .hero-logo-window{height:65px}}
