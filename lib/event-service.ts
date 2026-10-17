@@ -95,9 +95,9 @@ async function POST(r: Request) {
       if (!result.meta.changes) return json({error:'The core must be fully charged before launch.'},409);
     } else if (body.action === 'reset') {
       await runtime.DB.batch([
-        runtime.DB.prepare('DELETE FROM activations'),
+        runtime.DB.prepare('DELETE FROM activations WHERE epoch IS NOT NULL'),
         runtime.DB.prepare("UPDATE event SET epoch=?,boost=0,paused=0,phase='collecting',launched_at=NULL,code=? WHERE id=1").bind(crypto.randomUUID(),String(crypto.getRandomValues(new Uint32Array(1))[0]%900000+100000)),
-        runtime.DB.prepare('DELETE FROM login_attempts'),
+        runtime.DB.prepare('DELETE FROM login_attempts WHERE bucket IS NOT NULL'),
       ]);
     } else return json({error:'Unknown control.'},400);
     return json(await snapshot(r));

@@ -44,7 +44,7 @@ export function createSupabaseStore(url: string, key: string, transport: typeof 
   prepare: sql => new SupabaseStatement(sql, [], rpc),
   async batch(statements) {
    const [remove, reset, attempts] = statements as SupabaseStatement[];
-   if (statements.length !== 3 || remove.sql !== 'DELETE FROM activations' || reset.sql !== "UPDATE event SET epoch=?,boost=0,paused=0,phase='collecting',launched_at=NULL,code=? WHERE id=1" || attempts.sql !== 'DELETE FROM login_attempts') throw new Error('Unsupported Supabase transaction');
+   if (statements.length !== 3 || !remove.sql.startsWith('DELETE FROM activations') || reset.sql !== "UPDATE event SET epoch=?,boost=0,paused=0,phase='collecting',launched_at=NULL,code=? WHERE id=1" || !attempts.sql.startsWith('DELETE FROM login_attempts')) throw new Error('Unsupported Supabase transaction');
    return rpc('reset', reset.values);
   },
  };

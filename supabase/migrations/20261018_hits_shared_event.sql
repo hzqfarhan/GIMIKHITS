@@ -57,7 +57,7 @@ begin
     update hits_room.event set phase='launching',launched_at=(p_values->>0)::bigint
      where id=1 and epoch=p_values->>1 and code=p_values->>2 and phase='collecting' and n+boost>=quota;
    when 'reset' then
-    delete from hits_room.activations;
+    delete from hits_room.activations where epoch is not null;
     update hits_room.event set epoch=p_values->>0,code=p_values->>1,boost=0,paused=0,phase='collecting',launched_at=null where id=1;
     -- Keep authentication attempt limits across event resets.
    else raise exception 'Unsupported event operation';
