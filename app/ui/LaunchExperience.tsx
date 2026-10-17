@@ -19,7 +19,6 @@ export default function LaunchExperience({ view }: { view: LaunchView }) {
   const [notice, setNotice] = useState('');
   const [origin, setOrigin] = useState('');
   const [qr, setQr] = useState('');
-  const [login, setLogin] = useState(false);
   const [key, setKey] = useState('');
   const [code, setCode] = useState('');
   const [quota, setQuota] = useState('100');
@@ -68,13 +67,13 @@ export default function LaunchExperience({ view }: { view: LaunchView }) {
     if (player) { player.muted = false; void player.play().then(() => setVideoBlocked(false)).catch(() => setVideoBlocked(true)); }
   }, [inVideo, playbackUrl, view]);
   useEffect(() => {
-    if (!login && !reset) return;
+    if (!reset) return;
     const previous = document.activeElement as HTMLElement | null;
     const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
     const nodes = () => Array.from(dialog?.querySelectorAll<HTMLElement>('input:not(:disabled),button:not(:disabled),a[href]') || []);
     nodes()[0]?.focus();
     const handle = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') { setLogin(false); setReset(false); }
+      if (event.key === 'Escape') { setReset(false); }
       if (event.key === 'Tab') {
         const list = nodes(), first = list[0], last = list[list.length - 1];
         if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
@@ -83,7 +82,7 @@ export default function LaunchExperience({ view }: { view: LaunchView }) {
     };
     document.addEventListener('keydown', handle);
     return () => { document.removeEventListener('keydown', handle); previous?.focus(); };
-  }, [login, reset]);
+  }, [reset]);
   useEffect(() => { if (sound && view === 'main' && cue !== 'idle') audio.current?.cue(cue); }, [cue, sound, view]);
   useEffect(()=>{const total=state?.total;if(total===undefined)return;if(sound&&view==='main'&&previousTotal.current!==null&&total>previousTotal.current&&!ready&&!launching)audio.current?.cue('activation');previousTotal.current=total;},[state?.total,sound,view,ready,launching]);
   useEffect(() => () => { audio.current?.close(); }, []);
@@ -95,7 +94,6 @@ export default function LaunchExperience({ view }: { view: LaunchView }) {
     catch { setNotice('Use your browser’s fullscreen option.'); }
   }
   async function launch() {
-    if (!state?.operator) { setLogin(true); return; }
     if (video.current && video.current.readyState >= 2) {
       video.current.muted = true;
       await video.current.play().then(() => { video.current?.pause(); if (video.current) video.current.currentTime = 0; }).catch(() => {});
@@ -111,7 +109,7 @@ export default function LaunchExperience({ view }: { view: LaunchView }) {
     try { await navigator.clipboard.writeText(value); setNotice('Link copied.'); } catch { setNotice(value); }
   }
   const status = <span className={`connection ${online ? 'connected' : ''}`}><i/>{online ? 'LIVE CONNECTION' : 'CONNECTING'}</span>;
-  const tools = <div className="stage-tools"><div>{view === 'main' && <button className={state?.operator ? 'armed' : ''} onClick={() => state?.operator ? setNotice('Stage authorised. The VIP can launch when the core is charged.') : setLogin(true)}><ShieldCheck size={14}/>{state?.operator ? 'Stage armed' : 'Prepare stage'}</button>}<span className="tool-divider"/>{status}</div><div><button onClick={toggleSound} aria-pressed={sound}>{sound ? <Volume2 size={15}/>:<VolumeX size={15}/>}Sound {sound?'on':'off'}</button><button onClick={()=>setFocus(!focus)} aria-pressed={focus}>{focus?'Show navigation':'Presentation mode'}</button><button onClick={fullscreen}><Expand size={15}/>Fullscreen</button></div></div>;
+  const tools = <div className="stage-tools"><div>{status}</div><div><button onClick={toggleSound} aria-pressed={sound}>{sound ? <Volume2 size={15}/>:<VolumeX size={15}/>}Sound {sound?'on':'off'}</button><button onClick={()=>setFocus(!focus)} aria-pressed={focus}>{focus?'Show navigation':'Presentation mode'}</button><button onClick={fullscreen}><Expand size={15}/>Fullscreen</button></div></div>;
 
   return <main className={`experience view-${view} ${focus?'focus-mode':''} ${ready?'is-ready':''} ${launching?'is-launching':''}`}>
     <ThemeToggle/><div className="ambient-grid" aria-hidden="true"/><div className="ambient-glow" aria-hidden="true"/><TechBackground/>
@@ -126,7 +124,7 @@ export default function LaunchExperience({ view }: { view: LaunchView }) {
           <div className="reactor-stage"><div className="reactor-label top"><span>HITS ENERGY CORE</span><i/> SYSTEM ONLINE</div>{!launching&&<Core progress={progress} phase="idle" framing={1.22}/>}<EnergyColumn total={state?.total??0} quota={state?.quota??100} paused={state?.paused} loaded={!!state}/><div className="reactor-label bottom"><span>INNOVATION / TALENT / POSSIBILITIES</span><span className="reactor-bars">▁ ▃ ▅ ▂ ▆ ▄ ▁</span></div></div>
         </>:<>
           <div className="ready-story"><span className="eyebrow"><i/> ENERGY TARGET REACHED</span><HitsLogo className="ready-hits"/><h1>The future<br/>is <em>unlocked.</em></h1><p>The room has done its part.<br/>Now, the moment is yours.</p><div className="ready-code"><span>YOUR VIP ACCESS CODE</span><strong>{state?.code}</strong><small>Enter this code on the launch console.</small></div><div className="ready-reactor"><Core progress={1} phase="assemble"/></div></div>
-          <section className="access-console" aria-labelledby="access-title"><div className="console-heading"><span className="console-icon"><Fingerprint size={28}/></span><div><span className="eyebrow">VIP AUTHORISATION</span><h2 id="access-title">Begin the extraordinary.</h2></div><span className="console-status"><i/> READY</span></div><form onSubmit={event=>{event.preventDefault();void launch();}}><label className="code-label" htmlFor="vip-code">ENTER THE SIX-DIGIT ACCESS CODE <span>{code.length} / 6</span></label><div className="code-entry" onClick={()=>codeInput.current?.focus()}><div className="digit-slots" aria-hidden="true">{Array.from({length:6},(_,i)=><span key={i} className={`${code[i]?'filled':''} ${code.length===i?'current':''}`}>{code[i]||<i/>}</span>)}</div><input ref={codeInput} id="vip-code" aria-label="VIP access code" inputMode="numeric" autoComplete="off" pattern="[0-9]{6}" maxLength={6} value={code} onChange={event=>setCode(event.target.value.replace(/\D/g,'').slice(0,6))}/></div><div className="keypad" aria-label="On-screen numeric keyboard">{['1','2','3','4','5','6','7','8','9','clear','0','back'].map(value=><button key={value} type="button" className={value.length>1?'key-function':''} aria-label={value==='back'?'Delete last digit':value==='clear'?'Clear code':value} onClick={()=>digit(value)} disabled={busy}>{value==='back'?<Delete size={24}/>:value==='clear'?'CLEAR':value}</button>)}</div><button className="launch-button" type="submit" disabled={busy||!online||code.length!==6}><span><Zap size={24}/>LAUNCH HITS</span><ArrowRight size={26}/></button><div className="console-foot"><LockKeyhole size={12}/>{state?.operator?'STAGE AUTHORISED · AWAITING YOUR COMMAND':'ORGANISER AUTHORISATION REQUIRED TO LAUNCH'}</div></form></section>
+          <section className="access-console" aria-labelledby="access-title"><div className="console-heading"><span className="console-icon"><Fingerprint size={28}/></span><div><span className="eyebrow">VIP AUTHORISATION</span><h2 id="access-title">Begin the extraordinary.</h2></div></div><form onSubmit={event=>{event.preventDefault();void launch();}}><label className="code-label" htmlFor="vip-code">ENTER THE SIX-DIGIT ACCESS CODE <span>{code.length} / 6</span></label><div className="code-entry" onClick={()=>codeInput.current?.focus()}><div className="digit-slots" aria-hidden="true">{Array.from({length:6},(_,i)=><span key={i} className={`${code[i]?'filled':''} ${code.length===i?'current':''}`}>{code[i]||<i/>}</span>)}</div><input ref={codeInput} id="vip-code" aria-label="VIP access code" inputMode="numeric" autoComplete="off" pattern="[0-9]{6}" maxLength={6} value={code} onChange={event=>setCode(event.target.value.replace(/\D/g,'').slice(0,6))}/></div><div className="keypad" aria-label="On-screen numeric keyboard">{['1','2','3','4','5','6','7','8','9','clear','0','back'].map(value=><button key={value} type="button" className={value.length>1?'key-function':''} aria-label={value==='back'?'Delete last digit':value==='clear'?'Clear code':value} onClick={()=>digit(value)} disabled={busy}>{value==='back'?<Delete size={24}/>:value==='clear'?'CLEAR':value}</button>)}</div><button className="launch-button" type="submit" disabled={busy||!online||code.length!==6}><span><Zap size={24}/>LAUNCH HITS</span><ArrowRight size={26}/></button><div className="console-foot"><Fingerprint size={12}/>ENTER THE SIX-DIGIT VIP CODE TO INITIATE LAUNCH</div></form></section>
         </>}
       </section>
       <ProgramStrip/>{tools}
@@ -141,7 +139,6 @@ export default function LaunchExperience({ view }: { view: LaunchView }) {
     {!online&&state&&<div className="offline-banner" role="status"><Radio size={14}/> Connection interrupted · Reconnecting automatically</div>}
     {!online&&!state&&<div className="loading-status" role="status">Connecting to the launch…</div>}
     {(error||notice)&&<div className={`toast ${error?'toast-error':''}`} role={error?'alert':'status'}><span>{error||notice}</span><button aria-label="Dismiss notification" onClick={()=>{setError('');setNotice('');}}><X size={17}/></button></div>}
-    {login&&<div className="modal-backdrop"><section role="dialog" aria-modal="true" aria-labelledby="login-title" className="modal"><button className="modal-close" aria-label="Close" onClick={()=>setLogin(false)}><X size={20}/></button><div className="panel-icon"><ShieldCheck size={28}/></div><h2 id="login-title">Prepare the stage.</h2><p>Authorise this computer with the organiser key. Then the VIP can enter the six-digit code.</p><form onSubmit={async event=>{event.preventDefault();if(await action('login',{key})){setLogin(false);setKey('');setNotice('Stage armed. Ready for your moment.');}}}><label htmlFor="stage-key">ORGANISER KEY</label><input id="stage-key" type="password" value={key} onChange={event=>setKey(event.target.value)} autoComplete="current-password" required/><button className="button primary" disabled={busy||!online}>Arm the stage <ShieldCheck size={17}/></button></form></section></div>}
     {reset&&<div className="modal-backdrop"><section role="dialog" aria-modal="true" aria-labelledby="reset-title" className="modal"><h2 id="reset-title">Start a fresh rehearsal?</h2><p>This clears the energy, stops the launch, and generates a new VIP code. Your target and video settings are kept.</p><div className="control-actions"><button className="button secondary" onClick={()=>setReset(false)}>Keep this session</button><button className="button danger" disabled={busy} onClick={async()=>{if(await action('reset')){setReset(false);setNotice('Fresh rehearsal ready.');}}}>Reset now</button></div></section></div>}
     {launching&&view==='main'&&<LaunchSequence elapsed={elapsed} placeholder={false} bypassUrl={links.bypass}/>}
     {launching&&view==='main'&&!inVideo&&<button className="cinematic-sound" onClick={toggleSound} aria-pressed={sound}>{sound?<Volume2 size={16}/>:<VolumeX size={16}/>}SOUND {sound?'ON':'OFF'}</button>}

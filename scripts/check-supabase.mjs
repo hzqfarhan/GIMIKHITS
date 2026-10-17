@@ -41,8 +41,8 @@ try{
  await Promise.all(Array.from({length:30},()=>req(2,'activate')));
  assert.equal((await req(1)).data.total,10,'Concurrent activations must stop at quota');
  const ready=(await req(0)).data;assert.equal(ready.phase,'ready');
- await req(0,'launch',{code:ready.code},'',401);await req(0,'launch',{code:'wrong'},op,400);
- const launched=(await req(0,'launch',{code:ready.code},op)).data;assert.equal(launched.phase,'launching');
+ await req(0,'launch',{code:'wrong'},'',400);
+ const launched=(await req(0,'launch',{code:ready.code},'')).data;assert.equal(launched.phase,'launching');
  for(let i=0;i<4;i++)assert.equal((await req(i)).data.launchedAt,launched.launchedAt);
  await req(0,'launch',{code:ready.code},op,409);
  assert.equal((await req(2,'activate')).data.total,10);

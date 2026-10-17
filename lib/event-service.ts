@@ -74,6 +74,12 @@ async function POST(r: Request) {
       const response = await snapshot(new Request(r.url,{headers:{cookie:`${r.headers.get('cookie') || ''}; hits_device=${device}`}}));
       return json(response,200,cookie(r,'hits_device',device));
     }
+    if (body.action === 'launch') {
+      if (body.code !== row.code) return json({error:'That code does not match. Please try again.'},400);
+      const result = await runtime.DB.prepare(`UPDATE event SET phase='launching',launched_at=? WHERE id=1 AND epoch=? AND code=? AND phase='collecting' AND ${countSql}+boost>=quota`).bind(Date.now(),row.epoch,body.code).run();
+      if (!result.meta.changes) return json({error:'The core must be fully charged before launch.'},409);
+      return json(await snapshot(r));
+    }
     if (!await authorised(r)) return json({error:'Sign in with the organiser key to use this control.'},401);
     if (body.action === 'boost') {
       const value = Number(body.value);
@@ -89,10 +95,6 @@ async function POST(r: Request) {
       const videoUrl = String(body.videoUrl || '').trim();
       if (videoUrl && !videoUrl.startsWith('/media/') && !/^https:\/\//.test(videoUrl)) return json({error:'Use an HTTPS video link or a /media/ video path.'},400);
       await runtime.DB.prepare("UPDATE event SET quota=?,video_url=? WHERE id=1 AND phase='collecting'").bind(quota,videoUrl).run();
-    } else if (body.action === 'launch') {
-      if (body.code !== row.code) return json({error:'That code does not match. Please try again.'},400);
-      const result = await runtime.DB.prepare(`UPDATE event SET phase='launching',launched_at=? WHERE id=1 AND epoch=? AND code=? AND phase='collecting' AND ${countSql}+boost>=quota`).bind(Date.now(),row.epoch,body.code).run();
-      if (!result.meta.changes) return json({error:'The core must be fully charged before launch.'},409);
     } else if (body.action === 'reset') {
       await runtime.DB.batch([
         runtime.DB.prepare('DELETE FROM activations WHERE epoch IS NOT NULL'),
