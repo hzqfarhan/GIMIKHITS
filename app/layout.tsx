@@ -1,5 +1,9 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import './technology.css';
+import './glitch.css';
+import './showcase.css';
+import './viewport.css';
 export const metadata: Metadata = {
   title: 'HITS × IUIC | Ignite the extraordinary',
   description: 'The audience-powered launch of Hussein Innovation & Talent Symposium at Universiti Tun Hussein Onn Malaysia.',

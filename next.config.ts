@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  poweredByHeader: false,
+  serverExternalPackages: ['node:sqlite'],
+  outputFileTracingExcludes: { '*': ['./.dev.vars', './.local/**/*', './.sites-runtime/**/*'] },
+  turbopack: { root: process.cwd() },
 };
 
 export default nextConfig;

@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { ConnectorBinding } from "./connector-contract.mjs";
 
-// Capture the trusted capability before Vinext derives its revalidation context,
+// Capture the trusted capability before the framework derives request context,
 // which does not retain custom execution-context props. Never share across requests.
 const bindings = new AsyncLocalStorage<ConnectorBinding | undefined>();
 

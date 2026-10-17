@@ -36,5 +36,12 @@ state=(await request(null)).data;assert.equal(state.audience,5,'Concurrent taps 
 const csrf=await fetch(`${origin}/api/event`,{method:'POST',headers:{Origin:'https://other-site.example','Content-Type':'application/json',Cookie:operator},body:JSON.stringify({action:'reset'})});assert.equal(csrf.status,403);checks++;
 await request('reset',{},operator);await request('settings',{value:100,videoUrl:''},operator);
 const finalState=(await request(null)).data;assert.equal(finalState.total,0);assert.equal(finalState.quota,100);
+assert.equal(finalState.links.main,`${origin}/`);
+assert.equal(finalState.links.qr,`${origin}/qr`);
+assert.equal(finalState.links.bypass,`${origin}/bypass`);
+assert.equal(finalState.links.audience,`${origin}/audience`);
+const malformed=await fetch(`${origin}/api/event`,{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:'invalid json'});assert.equal(malformed.status,400);checks++;
+const forged=operator.replace(/.$/,'x');
+await request('boost',{value:1},forged,401);
 await request('logout',{},operator);
 console.log(`PASS: ${checks} HTTP checks; duplicate protection, pause/resume, authenticated controls, boost, code validation, launch freeze, reset, concurrent target enforcement, and cross-origin rejection. Restored a fresh 100-activation rehearsal.`);

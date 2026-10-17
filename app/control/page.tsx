@@ -1,2 +1,2 @@
 import LaunchExperience from '../ui/LaunchExperience';
-export default function Page() { return <LaunchExperience view="control" />; }
+export default function Page() { return <LaunchExperience view="bypass" />; }

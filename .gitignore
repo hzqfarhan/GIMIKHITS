@@ -45,6 +45,7 @@ next-env.d.ts
 !/build/sites-vite-plugin.LICENSE
 !/build/sites-vite-plugin.ts
 !/build/sites-worker.ts
+!/build/next-sites-worker.ts
 
 /dist/
 /.wrangler/
@@ -58,3 +59,5 @@ next-env.d.ts
 /.dev.vars
 /CONTROL-ACCESS.txt
 /*.tsbuildinfo
+/.local/
+!/.env.example
