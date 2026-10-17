@@ -62,3 +62,40 @@ html[data-theme=hits-light] .cinematic.logo-revealed .cinematic-scene{opacity:.0
 @media(prefers-reduced-motion:reduce){.launch-rails,.launch-gate,.launch-fragments,.launch-side-meter{display:none}.launch-iris i,.effects-burst .launch-iris{animation:none}.cinematic .countdown-orbit strong,html[data-theme^=hits-] .cinematic .cinematic-copy{animation:none}.effects-burst .launch-iris{opacity:.15}}
 .launch-gate i:last-child{animation-name:launch-gate-open-right}
 @keyframes launch-gate-open-right{from{translate:0 0;opacity:.7}to{translate:105% 0;opacity:0}}
+
+/* The actual programme identities assemble, hold around the core, then reunite. */
+.programme-mark{display:block;width:100%;height:100%;overflow:visible}
+.cinematic .programme-mark{filter:drop-shadow(0 0 1px #ffffffcc) drop-shadow(0 0 12px var(--launch-glow))}
+html[data-theme=hits-light] .cinematic .programme-mark{filter:drop-shadow(0 2px 6px #2e1fa815)}
+.verification-brand{width:clamp(100px,14vmin,165px);height:auto;margin-bottom:20px}
+.cinematic .verification-copy .scan-fingerprint{width:80px;height:80px;border-radius:20px;margin-bottom:15px}.cinematic .verification-copy .scan-fingerprint svg{width:55px;height:55px}
+.assembly-logo-line{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:clamp(12px,2vw,32px);width:min(86vw,1080px);margin-top:32px;perspective:1000px}
+.assembly-logo{position:relative;display:flex;flex-direction:column;align-items:center;gap:14px;padding:15px 4px 19px;min-width:0;animation:programme-assemble .95s cubic-bezier(.16,1,.3,1) var(--arrival) both}
+.assembly-logo:before{content:'';position:absolute;inset:0;border-top:1px solid var(--launch-line);border-bottom:1px solid var(--launch-line);background:linear-gradient(180deg,var(--launch-wash),transparent);z-index:-1}
+.assembly-logo .programme-mark{height:clamp(60px,10vmin,110px);width:95%}
+.assembly-index{font-family:Orbitron,sans-serif;font-size:6px;letter-spacing:.12em;color:var(--launch-blue);white-space:nowrap}
+.assembly-logo strong{font-size:11px;font-weight:500;letter-spacing:.04em;color:var(--launch-ink)}
+.assembly-logo>i{position:absolute;bottom:-1px;height:2px;left:0;right:0;transform-origin:left;background:linear-gradient(90deg,var(--launch-blue),var(--launch-red));animation:programme-link .7s ease-out calc(var(--arrival) + .4s) both}
+.cinematic .assembly-copy h2{font-size:clamp(35px,6.5vmin,80px);margin-top:12px}
+.programme-constellation{position:absolute;inset:100px 4% 95px;pointer-events:none;z-index:1}
+.programme-satellite{position:absolute;width:clamp(90px,13vw,180px);display:flex;flex-direction:column;align-items:center;gap:9px;animation:programme-dock .9s cubic-bezier(.16,1,.3,1) var(--arrival) both}
+.programme-satellite .programme-mark{height:clamp(50px,9vmin,100px)}
+.programme-satellite>span{font-size:8px;letter-spacing:.06em;color:var(--launch-ink)}
+.programme-satellite>i{height:1px;width:70%;background:linear-gradient(90deg,transparent,var(--launch-red),transparent);box-shadow:0 0 12px var(--launch-glow)}
+.satellite-0{top:10%;left:6%}.satellite-1{top:10%;right:6%}.satellite-2{top:53%;left:2%}.satellite-3{top:53%;right:2%}.satellite-4{bottom:0;left:50%;translate:-50% 0}
+.phase-countdown .programme-satellite{filter:drop-shadow(0 0 14px var(--launch-wash))}
+.reveal-logo-line{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:clamp(12px,3vw,38px);width:min(78vw,880px);margin-top:22px}
+.reveal-logo-line>div{display:flex;flex-direction:column;align-items:center;gap:9px;animation:programme-reveal .85s cubic-bezier(.16,1,.3,1) var(--arrival) both}
+.reveal-logo-line .programme-mark{height:clamp(44px,8vmin,84px)}
+.reveal-logo-line span{font-size:8px;color:var(--launch-ink);letter-spacing:.04em}
+.cinematic .reveal-logo{width:min(36vw,42vmin,430px);margin:14px 0 3px}
+.cinematic .reveal-copy h2{font-size:clamp(30px,5.5vmin,60px);margin:9px 0 16px}
+.sequence-progress-track{position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--launch-wash);z-index:5}
+.sequence-progress-track>i{display:block;height:100%;background:linear-gradient(90deg,var(--launch-blue),var(--launch-red));box-shadow:0 0 18px var(--launch-glow);transition:width .2s linear}
+@keyframes programme-assemble{from{opacity:0;transform:translate3d(0,45px,-100px) rotateX(22deg);filter:blur(6px);clip-path:inset(50% 0)}55%{opacity:1;clip-path:inset(0)}to{opacity:1;transform:none;filter:none;clip-path:inset(0)}}
+@keyframes programme-link{from{scale:0 1}to{scale:1 1}}
+@keyframes programme-dock{from{opacity:0;transform:scale(.7) translateY(20px);filter:blur(5px)}to{opacity:1;transform:none;filter:none}}
+@keyframes programme-reveal{from{opacity:0;transform:translateY(20px) scale(.9);filter:blur(5px)}to{opacity:1;transform:none;filter:none}}
+@media(max-width:700px){.assembly-logo-line{gap:8px;width:91vw}.assembly-logo{gap:9px;padding:12px 1px}.assembly-index{font-size:4px;letter-spacing:0}.assembly-logo strong{font-size:7px}.assembly-logo .programme-mark{height:55px}.programme-constellation{inset:100px 0 95px}.programme-satellite{width:76px}.programme-satellite .programme-mark{height:44px}.programme-satellite>span{font-size:6px}.satellite-0{left:3%;top:0}.satellite-1{right:3%;top:0}.satellite-2{left:1%;top:60%}.satellite-3{right:1%;top:60%}.reveal-logo-line{width:88vw;gap:10px}.reveal-logo-line span{font-size:6px}.cinematic .reveal-logo{width:min(65vw,280px)}}
+@media(max-height:650px){.verification-brand{width:90px;margin-bottom:8px}.cinematic .verification-copy .scan-fingerprint{width:58px;height:58px;margin-bottom:5px}.cinematic .verification-copy h2{font-size:clamp(30px,7vmin,60px);margin-top:8px}.assembly-logo-line{margin-top:15px}.assembly-logo .programme-mark{height:55px}.programme-constellation{inset:75px 3% 65px}.programme-satellite .programme-mark{height:45px}.reveal-logo-line{margin-top:12px}.reveal-logo-line .programme-mark{height:40px}.cinematic .reveal-logo{width:25vmin}.cinematic .reveal-copy h2{font-size:30px}.cinematic .reveal-copy>.eyebrow{font-size:7px}}
+@media(prefers-reduced-motion:reduce){.assembly-logo,.assembly-logo>i,.programme-satellite,.reveal-logo-line>div{animation:none}.sequence-progress-track>i{transition:none}}

@@ -24,7 +24,7 @@ export default function LaunchExperience({ view }: { view: LaunchView }) {
   const [quota, setQuota] = useState('100');
   const [videoUrl, setVideoUrl] = useState('');
   const [reset, setReset] = useState(false);
-  const [sound, setSound] = useState(false);
+  const [sound, setSound] = useState(true);
   const [focus, setFocus] = useState(false);
   const [videoBlocked, setVideoBlocked] = useState(false);
   const [videoError, setVideoError] = useState(false);
@@ -199,7 +199,21 @@ export default function LaunchExperience({ view }: { view: LaunchView }) {
     return () => { document.removeEventListener('keydown', handle); previous?.focus(); };
   }, [reset]);
   useEffect(() => { if (sound && view === 'main' && cue !== 'idle') audio.current?.cue(cue); }, [cue, sound, view]);
-  useEffect(() => () => { audio.current?.close(); }, []);
+  useEffect(() => {
+    if(view !== 'main') return;
+    const engine = new LaunchAudio();
+    audio.current = engine;
+    let stopped = false;
+    const unlock = () => { void engine.enable().then(() => {
+      if(stopped) return;
+      document.removeEventListener('pointerdown', unlock);
+      document.removeEventListener('keydown', unlock);
+    }).catch(() => {}); };
+    document.addEventListener('pointerdown', unlock);
+    document.addEventListener('keydown', unlock);
+    unlock();
+    return () => { stopped = true; document.removeEventListener('pointerdown', unlock); document.removeEventListener('keydown', unlock); engine.close(); if(audio.current === engine) audio.current = null; };
+  }, [view]);
   async function toggleSound() {
     try{if (!sound) { audio.current ??= new LaunchAudio(); await audio.current.enable(); audio.current.cue('tap'); }else audio.current?.mute();setSound(!sound);}catch{setError('Sound could not start. Check this browser’s audio settings.');}
   }
@@ -223,12 +237,12 @@ export default function LaunchExperience({ view }: { view: LaunchView }) {
     try { await navigator.clipboard.writeText(value); setNotice('Link copied.'); } catch { setNotice(value); }
   }
   const status = <span className={`connection ${online ? 'connected' : ''}`}><i/>{online ? 'LIVE CONNECTION' : 'CONNECTING'}</span>;
-  const tools = <div className="stage-tools"><div>{status}</div><div><button onClick={toggleSound} aria-pressed={sound}>{sound ? <Volume2 size={15}/>:<VolumeX size={15}/>}Sound {sound?'on':'off'}</button><button onClick={()=>setFocus(!focus)} aria-pressed={focus}>{focus?'Show navigation':'Presentation mode'}</button><button onClick={fullscreen}><Expand size={15}/>Fullscreen</button></div></div>;
+  const tools = <div className="stage-tools"><div>{status}</div>{view!=='main'&&<div><button onClick={toggleSound} aria-pressed={sound}>{sound ? <Volume2 size={15}/>:<VolumeX size={15}/>}Sound {sound?'on':'off'}</button><button onClick={()=>setFocus(!focus)} aria-pressed={focus}>{focus?'Show navigation':'Presentation mode'}</button><button onClick={fullscreen}><Expand size={15}/>Fullscreen</button></div>}</div>;
 
   return <main className={`experience view-${view} ${focus?'focus-mode':''} ${ready?'is-ready':''} ${launching?'is-launching':''}`}>
     <ThemeToggle/><div className="ambient-grid" aria-hidden="true"/><div className="ambient-glow" aria-hidden="true"/><TechBackground/>
     {(view==='audience'||view==='qr')&&<BackgroundScene/>}
-    {view!=='qr'&&view!=='audience'&&<header className="site-header"><a className="brand-lockup" href={links.main} aria-label="HITS main stage"><HitsLogo/><span className="brand-divider"/><span>HUSSEIN INNOVATION<br/>& TALENT SYMPOSIUM</span></a><nav aria-label="Launch views">{(['main','qr','bypass','audience'] as const).map(item=><a key={item} href={links[item]} className={view===item?'active':''}>{item==='main'?'Main stage':item==='qr'?'QR screen':item==='bypass'?'Bypass':'Audience'}{item==='audience'&&<ArrowUpRight size={13}/>}</a>)}</nav><span className="header-edition">UTHM <i/> LIVE LAUNCH</span></header>}
+    {view!=='qr'&&view!=='audience'&&<header className="site-header"><a className="brand-lockup" href={links.main} aria-label="HITS main stage"><HitsLogo/><span className="brand-divider"/><span>HUSSEIN INNOVATION<br/>& TALENT SYMPOSIUM</span></a>{view!=='main'&&<nav aria-label="Launch views"> {(['main','qr','bypass','audience'] as const).map(item=><a key={item} href={links[item]} className={view===item?'active':''}>{item==='main'?'Main stage':item==='qr'?'QR screen':item==='bypass'?'Bypass':'Audience'}{item==='audience'&&<ArrowUpRight size={13}/>}</a>)}</nav>}<span className="header-edition">UTHM <i/> LIVE LAUNCH</span></header>}
 
     {view==='main'&&<>
       <section className={`stage-main ${ready?'stage-ready':''}`}>
@@ -255,7 +269,6 @@ export default function LaunchExperience({ view }: { view: LaunchView }) {
     {(error||notice)&&<div className={`toast ${error?'toast-error':''}`} role={error?'alert':'status'}><span>{error||notice}</span><button aria-label="Dismiss notification" onClick={()=>{setError('');setNotice('');}}><X size={17}/></button></div>}
     {reset&&<div className="modal-backdrop"><section role="dialog" aria-modal="true" aria-labelledby="reset-title" className="modal"><h2 id="reset-title">Start a fresh rehearsal?</h2><p>This clears the energy, stops the launch, and generates a new VIP code. Your target and video settings are kept.</p><div className="control-actions"><button className="button secondary" onClick={()=>setReset(false)}>Keep this session</button><button className="button danger" disabled={busy} onClick={async()=>{boostAbortRef.current=true;if(await action('reset')){setReset(false);setDisplayTotal(0);setNotice('Fresh rehearsal ready.');}}}>Reset now</button></div></section></div>}
     {launching&&view==='main'&&<LaunchSequence elapsed={elapsed} placeholder={false} bypassUrl={links.bypass}/>}
-    {launching&&view==='main'&&!inVideo&&<button className="cinematic-sound" onClick={toggleSound} aria-pressed={sound}>{sound?<Volume2 size={16}/>:<VolumeX size={16}/>}SOUND {sound?'ON':'OFF'}</button>}
     {view==='main'&&<div className={inVideo?'video-stage':'preload-video'} aria-hidden={!inVideo}><video ref={video} src={playbackUrl} playsInline preload="auto" onEnded={()=>setVideoEnded(true)} onError={()=>setVideoError(true)} controls={inVideo&&(videoBlocked||videoError)}/>{inVideo&&videoBlocked&&!videoError&&<button className="button primary video-recovery" onClick={()=>video.current?.play().then(()=>setVideoBlocked(false)).catch(()=>setError('Click play again or check the video link.'))}><Play size={22}/>Play continuity video</button>}{inVideo&&videoError&&<div className="video-message"><h2>The video could not load.</h2><p>Update the video link in bypass controls.</p><a href={links.bypass} className="button secondary">Open bypass controls</a></div>}{inVideo&&videoEnded&&<div className="video-message"><HitsLogo/><span className="eyebrow">OFFICIALLY LAUNCHED</span><h2>The future starts with us.</h2><a href={links.bypass} className="text-button">Back to bypass controls <ArrowUpRight size={14}/></a></div>}</div>}
   </main>;
 }

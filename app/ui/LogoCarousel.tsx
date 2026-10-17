@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { HitsLogo, PROGRAMS } from './Brand';
+import { HitsLogo, PROGRAMS, ProgramLogo } from './Brand';
 
 const LOGO_INTERVAL_MS = 5000;
 
@@ -23,7 +23,7 @@ export default function LogoCarousel() {
         <HitsLogo/>
       </div>
       {PROGRAMS.map((program, index) => <div key={program.name} className={`hero-logo-slide hero-program-${index} ${active === index + 1 ? 'is-current' : ''}`} aria-hidden={active !== index + 1}>
-        <img src={`/logos/${program.file}`} alt={program.title}/>
+        <ProgramLogo index={index} className="carousel-program-mark"/>
       </div>)}
       <span key={active} className="hero-logo-interference" aria-hidden="true"/>
     </div>
