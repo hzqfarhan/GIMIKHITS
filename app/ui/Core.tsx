@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { useTheme } from './ThemeProvider';
+import { brandMaterial } from './brandMaterials';
 import {hitsSilhouette} from './hitsSilhouette';
 
 type CoreProps = { progress: number; ignition?: boolean; phase?: string; intensity?: number; framing?: number };
@@ -11,6 +13,7 @@ const phasePower: Record<string, number> = { idle: 0, verify: 0.26, assemble: 0.
 
 /** A procedural reactor shared by the stage, audience and launch sequence. */
 export default function Core({ progress = 0, ignition = false, phase = 'idle', intensity, framing = 1 }: CoreProps) {
+  const {theme} = useTheme();
   const host = useRef<HTMLDivElement>(null);
   const state = useRef({ progress, ignition, phase, intensity });
   const [fallback, setFallback] = useState(false);
@@ -40,7 +43,7 @@ export default function Core({ progress = 0, ignition = false, phase = 'idle', i
     const materials = new Set<Disposable>();
     const textures = new Set<Disposable>();
     const geometry = <T extends Disposable,>(value: T): T => { geometries.add(value); return value; };
-    const material = <T extends Disposable,>(value: T): T => { materials.add(value); return value; };
+    const material = <T extends Disposable,>(value: T): T => { materials.add(value); return brandMaterial(value, theme); };
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 80);
     const reactor = new THREE.Group();
@@ -115,7 +118,7 @@ export default function Core({ progress = 0, ignition = false, phase = 'idle', i
     const logoMaterial=material(new THREE.ShaderMaterial({
       uniforms:{logoMap:{value:null}},transparent:true,depthWrite:false,
       vertexShader:'varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-      fragmentShader:'uniform sampler2D logoMap; varying vec2 vUv; void main(){vec2 uv=vec2(265.0/1563.0,583.0/1563.0)+vUv*vec2(1040.0/1563.0,560.0/1563.0);vec4 brand=texture2D(logoMap,uv);if(brand.a<0.03)discard;vec3 tint=mix(vec3(0.82,0.88,1.0),brand.rgb,0.18);gl_FragColor=vec4(tint,brand.a);}',
+      fragmentShader:`uniform sampler2D logoMap; varying vec2 vUv; void main(){vec2 uv=vec2(265.0/1563.0,583.0/1563.0)+vUv*vec2(1040.0/1563.0,560.0/1563.0);vec4 brand=texture2D(logoMap,uv);if(brand.a<0.03)discard;vec3 tint=mix(vec3(0.82,0.88,1.0),brand.rgb,${theme === 'purple' ? '0.18' : '1.0'});gl_FragColor=vec4(tint,brand.a);}`,
     }));
     const logoFace=new THREE.Mesh(geometry(new THREE.PlaneGeometry(1.98,1.066)),logoMaterial);
     logoFace.position.z=.18;logoFace.visible=false;badge.add(logoFace);
@@ -312,9 +315,9 @@ export default function Core({ progress = 0, ignition = false, phase = 'idle', i
     shockwave.visible = false;
     scene.add(shockwave);
     scene.add(new THREE.AmbientLight(0xa18fe8, 2.2));
-    const cyanLight = new THREE.PointLight(0x82eeff, 24, 14);
+    const cyanLight = new THREE.PointLight(theme === 'purple' ? 0x82eeff : 0xfe0008, 24, 14);
     cyanLight.position.set(2, 2.5, 3);
-    const violetLight = new THREE.PointLight(0xc851ff, 28, 14);
+    const violetLight = new THREE.PointLight(theme === 'purple' ? 0xc851ff : 0x6555ef, 28, 14);
     violetLight.position.set(-2.5, -1, 2.5);
     scene.add(cyanLight, violetLight);
 
@@ -489,7 +492,7 @@ export default function Core({ progress = 0, ignition = false, phase = 'idle', i
       renderer.forceContextLoss();
       renderer.domElement.remove();
     };
-  }, [framing]);
+  }, [framing, theme]);
 
   return (
     <div className={'core-visual ' + (ignition ? 'igniting' : '')} data-phase={phase} aria-hidden="true">
