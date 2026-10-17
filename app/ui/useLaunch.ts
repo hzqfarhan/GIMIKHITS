@@ -47,7 +47,7 @@ export function useLaunch(view: LaunchView) {
     return () => { stopped = true; clearTimeout(timer); };
   }, [receive, view]);
 
-  async function action(name: string, extra: Record<string, unknown> = {}) {
+  async function action(name: string, extra: Record<string, unknown> = {}): Promise<EventState | boolean> {
     if (active.current) return false;
     active.current = true;
     version.current++;
@@ -60,13 +60,16 @@ export function useLaunch(view: LaunchView) {
       });
       const result = await response.json() as EventState & { error?: string };
       if (!response.ok) throw new Error(result.error || 'Please try again.');
-      if (result.epoch) receive(result);
-      else {
+      if (result.epoch) {
+        receive(result);
+        return result;
+      } else {
         const next = await fetch('/api/event', { cache: 'no-store', signal: AbortSignal.timeout(8000) });
         if (!next.ok) throw new Error('Saved. Reconnecting to the event…');
-        receive(await next.json() as EventState);
+        const nextState = await next.json() as EventState;
+        receive(nextState);
+        return nextState;
       }
-      return true;
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'The connection was interrupted. Please retry.');
       return false;

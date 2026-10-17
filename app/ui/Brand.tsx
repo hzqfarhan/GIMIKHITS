@@ -3,7 +3,7 @@ export const PROGRAMS = [
   { name: 'HDSC', title: 'Hussein Digital Skills Competition', file: 'HDSC.png', signal: 'DIGITAL SKILLS' },
   { name: 'Suara Cendekia', title: 'Suara Cendekia', file: 'SUARACENDEKIA.png', signal: 'IDEAS' },
   { name: 'SUTERA', title: 'SUTERA', file: 'SUTERA.png', signal: 'EXPRESSION' },
-  { name: 'UI Festival', title: 'UI Festival', file: 'UIFEST26.png', signal: 'COMMUNITY' },
+  { name: 'UI Festival', title: 'UI Festival', file: 'UIFEST.png', signal: 'COMMUNITY' },
 ];
 
 export function HitsLogo({ className = '', colour = false }: { className?: string; colour?: boolean }) {
