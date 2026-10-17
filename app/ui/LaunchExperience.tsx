@@ -7,6 +7,7 @@ import LogoCarousel from './LogoCarousel';
 import EnergyColumn from './EnergyColumn';
 import { ThemeToggle } from './ThemeProvider';
 import LaunchSequence, { phaseAt } from './LaunchSequence';
+import AccessUnlock from './AccessUnlock';
 import TechBackground from './TechBackground';
 import { LaunchAudio } from './LaunchAudio';
 import { useLaunch, SEQUENCE_SECONDS, type LaunchView } from './useLaunch';
@@ -31,6 +32,7 @@ export default function LaunchExperience({ view }: { view: LaunchView }) {
   const [videoEnded, setVideoEnded] = useState(false);
   const [displayTotal, setDisplayTotal] = useState(0);
   const [boosting, setBoosting] = useState(false);
+  const [unlockedPanel, setUnlockedPanel] = useState<string | null>(null);
   const initialSynced = useRef(false);
   const lastSoundTime = useRef(0);
   const boostAbortRef = useRef(false);
@@ -43,6 +45,15 @@ export default function LaunchExperience({ view }: { view: LaunchView }) {
   const currentQuota = state?.quota ?? 100;
   const ready = (state?.phase === 'ready' || targetTotal >= currentQuota) && displayTotal >= currentQuota;
   const launching = state?.phase === 'launching';
+  const unlockKey = state ? state.epoch + ':' + state.code : '';
+  const unlocking = view === 'main' && ready && !launching && unlockedPanel !== unlockKey;
+  const panelReady = ready && !unlocking;
+  useEffect(() => {
+    if (!ready) { setUnlockedPanel(null); return; }
+    if (!unlocking) return;
+    const timer = window.setTimeout(() => setUnlockedPanel(unlockKey), 4000);
+    return () => window.clearTimeout(timer);
+  }, [ready, unlocking, unlockKey]);
   const progress = state && currentQuota > 0 ? Math.min(1, displayTotal / currentQuota) : 0;
   const inVideo = launching && elapsed >= SEQUENCE_SECONDS;
   const playbackUrl = state?.videoUrl || '/media/hits-placeholder.mp4';
@@ -239,15 +250,15 @@ export default function LaunchExperience({ view }: { view: LaunchView }) {
   const status = <span className={`connection ${online ? 'connected' : ''}`}><i/>{online ? 'LIVE CONNECTION' : 'CONNECTING'}</span>;
   const tools = <div className="stage-tools"><div>{status}</div>{view!=='main'&&<div><button onClick={toggleSound} aria-pressed={sound}>{sound ? <Volume2 size={15}/>:<VolumeX size={15}/>}Sound {sound?'on':'off'}</button><button onClick={()=>setFocus(!focus)} aria-pressed={focus}>{focus?'Show navigation':'Presentation mode'}</button><button onClick={fullscreen}><Expand size={15}/>Fullscreen</button></div>}</div>;
 
-  return <main className={`experience view-${view} ${focus?'focus-mode':''} ${ready?'is-ready':''} ${launching?'is-launching':''}`}>
+  return <main className={`experience view-${view} ${focus?'focus-mode':''} ${panelReady?'is-ready':''} ${launching?'is-launching':''}`}>
     <ThemeToggle/><div className="ambient-grid" aria-hidden="true"/><div className="ambient-glow" aria-hidden="true"/><TechBackground/>
     {(view==='audience'||view==='qr')&&<BackgroundScene/>}
     {view!=='qr'&&view!=='audience'&&<header className="site-header"><a className="brand-lockup" href={links.main} aria-label="HITS main stage"><HitsLogo/><span className="brand-divider"/><span>HUSSEIN INNOVATION<br/>& TALENT SYMPOSIUM</span></a>{view!=='main'&&<nav aria-label="Launch views"> {(['main','qr','bypass','audience'] as const).map(item=><a key={item} href={links[item]} className={view===item?'active':''}>{item==='main'?'Main stage':item==='qr'?'QR screen':item==='bypass'?'Bypass':'Audience'}{item==='audience'&&<ArrowUpRight size={13}/>}</a>)}</nav>}<span className="header-edition">UTHM <i/> LIVE LAUNCH</span></header>}
 
     {view==='main'&&<>
-      <section className={`stage-main ${ready?'stage-ready':''}`}>
+      <section className={`stage-main ${panelReady?'stage-ready':''}`}>
         <div className="stage-coordinates" aria-hidden="true"><span>01 / COLLECTIVE ENERGY</span><span>INNOVATION HAS NO LIMITS</span></div>
-        {!ready?<>
+        {!panelReady?<>
           <div className="stage-copy"><span className="eyebrow"><i/> THE OFFICIAL LAUNCH EXPERIENCE</span><LogoCarousel/><h1>Ideas become<br/><em>impact.</em></h1><p>A room full of possibility.<br/>One moment to bring it all to life.</p><a className="qr-link" href={links.qr}><span><QrCode size={20}/></span><div>SCAN. ACTIVATE. IGNITE.<small>Open the audience QR screen <ArrowUpRight size={13}/></small></div></a></div>
           <div className="reactor-stage"><div className="reactor-label top"><span>HITS ENERGY CORE</span><i/> SYSTEM ONLINE</div>{!launching&&<Core progress={progress} phase="idle" framing={1.22}/>}<EnergyColumn total={displayTotal} quota={state?.quota??100} paused={state?.paused} loaded={!!state}/><div className="reactor-label bottom"><span>INNOVATION / TALENT / POSSIBILITIES</span><span className="reactor-bars">▁ ▃ ▅ ▂ ▆ ▄ ▁</span></div></div>
         </>:<>
@@ -268,6 +279,7 @@ export default function LaunchExperience({ view }: { view: LaunchView }) {
     {!online&&!state&&<div className="loading-status" role="status">Connecting to the launch…</div>}
     {(error||notice)&&<div className={`toast ${error?'toast-error':''}`} role={error?'alert':'status'}><span>{error||notice}</span><button aria-label="Dismiss notification" onClick={()=>{setError('');setNotice('');}}><X size={17}/></button></div>}
     {reset&&<div className="modal-backdrop"><section role="dialog" aria-modal="true" aria-labelledby="reset-title" className="modal"><h2 id="reset-title">Start a fresh rehearsal?</h2><p>This clears the energy, stops the launch, and generates a new VIP code. Your target and video settings are kept.</p><div className="control-actions"><button className="button secondary" onClick={()=>setReset(false)}>Keep this session</button><button className="button danger" disabled={busy} onClick={async()=>{boostAbortRef.current=true;if(await action('reset')){setReset(false);setDisplayTotal(0);setNotice('Fresh rehearsal ready.');}}}>Reset now</button></div></section></div>}
+    {unlocking&&<AccessUnlock key={unlockKey}/>}
     {launching&&view==='main'&&<LaunchSequence elapsed={elapsed} placeholder={false} bypassUrl={links.bypass}/>}
     {view==='main'&&<div className={inVideo?'video-stage':'preload-video'} aria-hidden={!inVideo}><video ref={video} src={playbackUrl} playsInline preload="auto" onEnded={()=>setVideoEnded(true)} onError={()=>setVideoError(true)} controls={inVideo&&(videoBlocked||videoError)}/>{inVideo&&videoBlocked&&!videoError&&<button className="button primary video-recovery" onClick={()=>video.current?.play().then(()=>setVideoBlocked(false)).catch(()=>setError('Click play again or check the video link.'))}><Play size={22}/>Play continuity video</button>}{inVideo&&videoError&&<div className="video-message"><h2>The video could not load.</h2><p>Update the video link in bypass controls.</p><a href={links.bypass} className="button secondary">Open bypass controls</a></div>}{inVideo&&videoEnded&&<div className="video-message"><HitsLogo/><span className="eyebrow">OFFICIALLY LAUNCHED</span><h2>The future starts with us.</h2><a href={links.bypass} className="text-button">Back to bypass controls <ArrowUpRight size={14}/></a></div>}</div>}
   </main>;
