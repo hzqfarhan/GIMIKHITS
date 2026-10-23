@@ -10,7 +10,7 @@ export const useTheme = () => useContext(ThemeContext);
 export default function ThemeProvider({children}: {children: ReactNode}) {
   const [theme, updateTheme] = useState<Theme>('purple');
   useEffect(() => {
-    try { const saved = localStorage.getItem('hits-theme'); if (validTheme(saved)) updateTheme(saved); } catch {}
+    try { const saved = localStorage.getItem('hits-theme'); if (validTheme(saved)) queueMicrotask(() => updateTheme(saved)); } catch {}
     const sync = (event: StorageEvent) => { if (event.key === 'hits-theme' && validTheme(event.newValue)) updateTheme(event.newValue); };
     window.addEventListener('storage', sync);
     return () => window.removeEventListener('storage', sync);

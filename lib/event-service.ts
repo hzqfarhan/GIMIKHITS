@@ -1,8 +1,8 @@
 import type { EventRuntime } from './event-store';
 import { launchLinks } from './launch-routing';
 export function createEventHandler(runtime: EventRuntime) {
-const json = (value: unknown, status = 200, cookie?: string) => new Response(JSON.stringify(value), {
-  status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...(cookie ? {'Set-Cookie': cookie} : {}) },
+const json = (value: unknown, status = 200, cookie?: string, cacheControl = 'private, no-store') => new Response(JSON.stringify(value), {
+  status, headers: { 'Content-Type': 'application/json', 'Cache-Control': cacheControl, ...(cookie ? {'Set-Cookie': cookie} : {}) },
 });
 const cookies = (r: Request) => Object.fromEntries((r.headers.get('cookie') || '').split(';').map(v => v.trim().split('=')));
 function cookie(r: Request, name: string, value: string, maxAge = 31536000) {
@@ -30,19 +30,22 @@ async function event() {
   await runtime.DB.prepare('INSERT OR IGNORE INTO event (id, epoch, code) VALUES (1, ?, ?)').bind(crypto.randomUUID(), String(crypto.getRandomValues(new Uint32Array(1))[0] % 900000 + 100000)).run();
   return (await runtime.DB.prepare(`SELECT *, ${countSql} AS audience FROM event WHERE id=1`).first()) as EventRow;
 }
-async function snapshot(r: Request) {
+async function snapshot(r: Request, sharedAudience = false) {
   const row = await event();
-  const isOperator = await authorised(r);
-  const device = cookies(r).hits_device;
+  const isOperator = sharedAudience ? false : await authorised(r);
+  const device = sharedAudience ? '' : cookies(r).hits_device;
   const activated = !!device && !!await runtime.DB.prepare('SELECT 1 FROM activations WHERE epoch=? AND device=?').bind(row.epoch, device).first();
   const total = row.audience + row.boost;
   const phase = row.phase === 'collecting' && total >= row.quota ? 'ready' : row.phase;
   return { epoch:row.epoch, quota:row.quota, total, audience:row.audience, boost:isOperator ? row.boost : undefined,
-    paused:!!row.paused, phase, code: phase === 'ready' ? row.code : undefined,
-    launchedAt:row.launched_at, videoUrl:row.video_url, activated, operator:isOperator, serverTime:Date.now(), configured:!!runtime.ORGANISER_KEY, links:launchLinks(r.url,runtime.EVENT_BASE_DOMAIN) };
+    paused:!!row.paused, phase, code: !sharedAudience && phase === 'ready' ? row.code : undefined,
+    launchedAt:row.launched_at, videoUrl:sharedAudience ? '' : row.video_url, activated, operator:isOperator, serverTime:Date.now(), configured:sharedAudience ? true : !!runtime.ORGANISER_KEY, links:launchLinks(r.url,runtime.EVENT_BASE_DOMAIN) };
 }
 async function GET(r: Request) {
-  try { return json(await snapshot(r)); }
+  try {
+    const sharedAudience = new URL(r.url).searchParams.get('view') === 'audience';
+    return json(await snapshot(r, sharedAudience), 200, undefined, sharedAudience ? 'public, s-maxage=1, stale-while-revalidate=4' : 'private, no-store');
+  }
   catch (e) { console.error('Event state unavailable', e); return json({error:'The launch connection is unavailable. Please retry.'},503); }
 }
 async function POST(r: Request) {
@@ -75,6 +78,7 @@ async function POST(r: Request) {
       return json(response,200,cookie(r,'hits_device',device));
     }
     if (body.action === 'launch') {
+      if (!await authorised(r)) return json({error:'Sign in with the organiser key before launching.'},401);
       if (body.code !== row.code) return json({error:'That code does not match. Please try again.'},400);
       const result = await runtime.DB.prepare(`UPDATE event SET phase='launching',launched_at=? WHERE id=1 AND epoch=? AND code=? AND phase='collecting' AND ${countSql}+boost>=quota`).bind(Date.now(),row.epoch,body.code).run();
       if (!result.meta.changes) return json({error:'The core must be fully charged before launch.'},409);

@@ -1,11 +1,9 @@
 'use client';
-import dynamic from 'next/dynamic';
 import type { CSSProperties } from 'react';
 import { Check, Fingerprint, Play, ArrowUpRight } from 'lucide-react';
 import { HitsLogo, PROGRAMS, ProgramLogo } from './Brand';
 import { SEQUENCE_SECONDS } from './useLaunch';
 import TechBackground from './TechBackground';
-const Core = dynamic(() => import('./Core'), { ssr: false });
 
 export function phaseAt(elapsed: number) {
   return elapsed < 3 ? 'verify' : elapsed < 7 ? 'assemble' : elapsed < 12 ? 'charge' : elapsed < 17 ? 'countdown' : 'burst';
@@ -27,7 +25,7 @@ export default function LaunchSequence({ elapsed, placeholder, bypassUrl }: { el
       <div className="launch-side-meter left"><i/><i/><i/><i/><i/></div><div className="launch-side-meter right"><i/><i/><i/><i/><i/></div>
     </div>}
     {!videoTime && <div className={`phase-handoff handoff-${phase}`} key={`handoff-${phase}`} aria-hidden="true"><i/><i/><span>{phase==='verify'?'AUTHORISING':phase==='assemble'?'CONNECTING':phase==='charge'?'SYNCHRONISING':phase==='countdown'?'IGNITION ARMED':'HITS ONLINE'}</span></div>}
-    {!videoTime && <div className="cinematic-scene"><Core progress={1} ignition phase={phase} intensity={phase === 'charge' ? Math.min(1,.5+(elapsed - 7)/10) : undefined}/></div>}
+    {!videoTime && <div className="cinematic-scene launch-light-core" aria-hidden="true"><i/><i/><HitsLogo/></div>}
     <div className="cinematic-vignette" aria-hidden="true"/>
     {(phase==='charge'||phase==='countdown')&&!videoTime&&<div className="programme-constellation" aria-label="Five HITS programmes connected">{PROGRAMS.map((p,i)=><div className={`programme-satellite satellite-${i}`} key={p.name} style={{'--arrival':`${i*.12}s`} as CSSProperties}><ProgramLogo index={i}/><span>{p.name}</span><i/></div>)}</div>}
     {!videoTime&&<div className="sequence-progress-track" aria-hidden="true"><i style={{width:`${Math.min(100,elapsed/SEQUENCE_SECONDS*100)}%`}}/></div>}

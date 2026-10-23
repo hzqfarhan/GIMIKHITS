@@ -37,7 +37,7 @@ The schema migration and adapter are implemented and tested locally. You still n
 
 ## Placeholder video
 
-public/media/hits-placeholder.mp4 is a local 12-second, silent, 1280x720 H.264 rehearsal film. The main panel preloads it and plays it after the launch transitions whenever Continuity Video is empty. The existing play-recovery button handles browser autoplay restrictions.
+`public/media/gimik-hits.mp4` is the official 69-second, 1080p H.264/AAC launch film, optimized for progressive browser playback. The main panel preloads it and plays it after the launch transitions whenever Continuity Video is empty. The existing play-recovery button handles browser autoplay restrictions. The smaller rehearsal placeholder remains available at `/media/hits-placeholder.mp4` as an emergency fallback.
 
 To use the final video, put an MP4 in public/media and save its /media/filename.mp4 path in Bypass > Continuity Video, or provide a direct HTTPS MP4 URL. Redeploy to publish new local video assets.
 

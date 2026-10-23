@@ -6,7 +6,7 @@ const key=readFileSync('.dev.vars','utf8').match(/^ORGANISER_KEY=(.+)$/m)?.[1].t
 let checks=0;
 async function request(action,body={},cookie='',expected=200){
   const r=await fetch(`${origin}/api/event`,{method:action?'POST':'GET',headers:{'Content-Type':'application/json',Origin:origin,Cookie:cookie},...(action?{body:JSON.stringify({action,...body})}:{})});
-  const data=await r.json();assert.equal(r.status,expected,data.error);checks++;
+  const data=await r.json();assert.equal(r.status,expected,data.error || `Unexpected HTTP ${r.status}`);checks++;
   return {data,cookie:r.headers.get('set-cookie')?.split(';')[0]||cookie};
 }
 await request('boost',{value:10},'',401);

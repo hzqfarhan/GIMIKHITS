@@ -126,3 +126,15 @@ html[data-theme=hits-light] .cinematic .programme-mark{filter:drop-shadow(0 2px 
 @keyframes unlock-shutter-right{to{translate:100% 0;opacity:0}}
 @media(max-height:650px){.unlock-brand{width:115px;margin-bottom:12px}.unlock-fingerprint{width:65px;height:65px;margin:12px 0}.unlock-fingerprint svg{width:40px}.unlock-copy h2{font-size:40px}.unlock-copy p{font-size:11px;margin-top:8px}.unlock-load{margin-top:14px}}
 @media(prefers-reduced-motion:reduce){.access-unlock,.unlock-copy,.unlock-rings i,.unlock-load i{animation:none}.unlock-rings{opacity:.15}.unlock-shutter,.unlock-fingerprint>i{display:none}}
+/* Keep launch rendering on compositor-friendly transforms on modest hardware. */
+.launch-light-core{display:grid;place-items:center;pointer-events:none}
+.launch-light-core>.hits-mark{width:min(32vw,280px);opacity:.28}
+.launch-light-core>i{position:absolute;width:min(60vmin,540px);aspect-ratio:1;border:1px solid var(--purple);border-radius:50%;opacity:.25;transform:rotateX(58deg);animation:light-core-orbit 12s linear infinite}
+.launch-light-core>i:nth-child(2){animation-direction:reverse;transform:rotateY(58deg)}
+@keyframes light-core-orbit{to{rotate:360deg}}
+.is-launching>.tech-background,.is-launching>.ambient-grid,.is-launching>.ambient-glow{display:none}
+.is-launching>.stage-main,.is-launching>.program-strip{visibility:hidden}
+.cinematic .cinematic-copy,.cinematic .assembly-logo,.cinematic .programme-satellite,.cinematic .reveal-logo-line>div,.cinematic .countdown-orbit strong{filter:none!important;backdrop-filter:none!important}
+.cinematic .digital-noise,.cinematic .glitch-bands,.cinematic .spatial-debris,.cinematic .tech-grain,.cinematic .ignition-flare{display:none}
+.is-launching .video-stage:has(video[style*="opacity: 0"]){background:transparent}
+@media(prefers-reduced-motion:reduce){.launch-light-core>i{animation:none}}

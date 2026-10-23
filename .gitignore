@@ -58,6 +58,8 @@ next-env.d.ts
 
 /.dev.vars
 /CONTROL-ACCESS.txt
+# Keep original multimedia masters local; deploy the optimized web encode only.
+/*.mov
 /*.tsbuildinfo
 /.local/
 !/.env.example

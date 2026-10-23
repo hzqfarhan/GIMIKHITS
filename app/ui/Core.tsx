@@ -23,7 +23,8 @@ export default function Core({ progress = 0, ignition = false, phase = 'idle', i
     const el = host.current;
     if (!el) return;
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const compact = window.matchMedia('(max-width: 760px)').matches;
+    // Conservative quality on desktops too: viewport size is not GPU capacity.
+    const compact = true;
     let reduced = motionQuery.matches;
     let renderer: InstanceType<typeof THREE.WebGLRenderer>;
     try {
@@ -32,7 +33,7 @@ export default function Core({ progress = 0, ignition = false, phase = 'idle', i
       const fallbackFrame = requestAnimationFrame(() => setFallback(true));
       return () => cancelAnimationFrame(fallbackFrame);
     }
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, compact ? 1.35 : 1.7));
+    renderer.setPixelRatio(1);
     renderer.setClearColor(0x000000, 0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -122,7 +123,7 @@ export default function Core({ progress = 0, ignition = false, phase = 'idle', i
     }));
     const logoFace=new THREE.Mesh(geometry(new THREE.PlaneGeometry(1.98,1.066)),logoMaterial);
     logoFace.position.z=.18;logoFace.visible=false;badge.add(logoFace);
-    const logoTexture=new THREE.TextureLoader().load('/logos/HITS.png',(texture:InstanceType<typeof THREE.Texture>)=>{
+    const logoTexture=new THREE.TextureLoader().load('/logos/optimized/HITS.webp',(texture:InstanceType<typeof THREE.Texture>)=>{
       if(disposed){texture.dispose();return;}
       logoMaterial.uniforms.logoMap.value=texture;logoFace.visible=!contourLoaded;
     });
