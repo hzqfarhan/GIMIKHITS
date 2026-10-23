@@ -17,6 +17,7 @@
     "preview:sites": "node scripts/preview-sites.mjs",
     "check": "tsc --noEmit",
     "test:rehearsal": "node scripts/check-rehearsal.mjs",
+    "test:stress": "node scripts/stress-local.mjs",
     "test:supabase": "node scripts/check-supabase.mjs"
   },
   "dependencies": {
