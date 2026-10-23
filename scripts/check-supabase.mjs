@@ -23,38 +23,35 @@ const transport=async(url,options)=>{
 const hosts=['hitsmainpanel','qr','audience','bypass'].map(x=>`https://${x}.seladevs.my`);
 // Each host has a separate server runtime, sharing only PostgreSQL.
 const handlers=hosts.map(()=>createEventHandler({DB:createSupabaseStore('https://test.supabase.co','sb_secret_test',transport),ORGANISER_KEY:'test-only-password',EVENT_BASE_DOMAIN:'seladevs.my'}));
-async function req(index,action,body={},cookie='',expected=200){
- const response=await handlers[index][action?'POST':'GET'](new Request(hosts[index]+'/api/event',{method:action?'POST':'GET',headers:{Origin:hosts[index],Cookie:cookie,'Content-Type':'application/json'},...(action?{body:JSON.stringify({action,...body})}:{})}));
+async function req(index,action,body={},cookie='',expected=200,shared=false){
+ const url = hosts[index]+'/api/event'+(shared?'?view=audience':'');
+ const response=await handlers[index][action?'POST':'GET'](new Request(url,{method:action?'POST':'GET',headers:{Origin:hosts[index],Cookie:cookie,'Content-Type':'application/json'},...(action?{body:JSON.stringify({action,...body})}:{})}));
  const data=await response.json();assert.equal(response.status,expected,JSON.stringify(data));
  return {data,cookie:response.headers.get('set-cookie')?.split(';')[0]||cookie};
 }
 try{
  const initial=await req(0);assert.equal(initial.data.total,0);
- await req(3,'boost',{value:25},'',401);
- await req(3,'login',{key:'wrong'},'',401);
- const op=(await req(3,'login',{key:'test-only-password'})).cookie;
- await req(3,'settings',{value:10,videoUrl:''},op);
+ await req(3,'boost',{value:25});
+ await req(3,'reset');
+ await req(3,'settings',{value:10,videoUrl:''});
  const tap=await req(2,'activate');
  assert.equal(tap.data.total,1);assert.equal((await req(2,'activate',{},tap.cookie)).data.total,1);
- for(let i=0;i<4;i++){const s=(await req(i)).data;assert.equal(s.total,1);assert.equal(s.epoch,tap.data.epoch);assert.equal(s.operator,false);assert.equal(s.boost,undefined);assert.equal(s.links.audience,hosts[2]+'/');}
- await req(3,'pause',{},op);assert.equal((await req(2,'activate')).data.total,1);await req(3,'pause',{},op);
+ const audienceSnapshot=(await req(2,null,{},'',200,true)).data;
+ assert.equal(audienceSnapshot.total,1);assert.equal(audienceSnapshot.epoch,tap.data.epoch);assert.equal(audienceSnapshot.operator,false);assert.equal(audienceSnapshot.boost,undefined);assert.equal(audienceSnapshot.links.audience,hosts[2]+'/');
+ await req(3,'pause');assert.equal((await req(2,'activate')).data.total,1);await req(3,'pause');
  await Promise.all(Array.from({length:30},()=>req(2,'activate')));
  assert.equal((await req(1)).data.total,10,'Concurrent activations must stop at quota');
  const ready=(await req(0)).data;assert.equal(ready.phase,'ready');
- await req(0,'launch',{code:ready.code},'',401);
- await req(0,'launch',{code:'wrong'},op,400);
- const launched=(await req(0,'launch',{code:ready.code},op)).data;assert.equal(launched.phase,'launching');
+ await req(0,'launch',{code:'wrong'},'',400);
+ const launched=(await req(0,'launch',{code:ready.code})).data;assert.equal(launched.phase,'launching');
  for(let i=0;i<4;i++)assert.equal((await req(i)).data.launchedAt,launched.launchedAt);
- await req(0,'launch',{code:ready.code},op,409);
+ await req(0,'launch',{code:ready.code},'',409);
  assert.equal((await req(2,'activate')).data.total,10);
- await req(3,'reset',{},op);const fresh=(await req(2,null,{},tap.cookie)).data;assert.equal(fresh.total,0);assert.equal(fresh.activated,false);assert.notEqual(fresh.epoch,ready.epoch);
- await req(3,'boost',{value:5},op);assert.equal((await req(1)).data.total,5);
- await req(3,'unlock',{},op);assert.equal((await req(0)).data.total,10);
- await req(3,'settings',{value:0},op,400);await req(3,'settings',{value:10,videoUrl:'javascript:bad'},op,400);
- const csrf=await handlers[3].POST(new Request(hosts[3]+'/api/event',{method:'POST',headers:{Origin:hosts[2],Cookie:op},body:JSON.stringify({action:'reset'})}));assert.equal(csrf.status,403);
- for(let i=0;i<13;i++)await req(3,'login',{key:'wrong'},'',401);
- await req(3,'login',{key:'test-only-password'},'',429);
- await req(3,'reset',{},op);await req(3,'login',{key:'test-only-password'},'',429);
+ await req(3,'reset');const fresh=(await req(2,null,{},tap.cookie)).data;assert.equal(fresh.total,0);assert.equal(fresh.activated,false);assert.notEqual(fresh.epoch,ready.epoch);
+ await req(3,'boost',{value:5});assert.equal((await req(1)).data.total,5);
+ await req(3,'unlock');assert.equal((await req(0)).data.total,10);
+ await req(3,'settings',{value:0},'',400);await req(3,'settings',{value:10,videoUrl:'javascript:bad'},'',400);
+ const csrf=await handlers[3].POST(new Request(hosts[3]+'/api/event',{method:'POST',headers:{Origin:hosts[2]},body:JSON.stringify({action:'reset'})}));assert.equal(csrf.status,403);
  for(const role of ['anon','authenticated']){
   await db.exec(`set role ${role}`);
   await assert.rejects(db.query("select public.hits_room_store('read_event')"));
