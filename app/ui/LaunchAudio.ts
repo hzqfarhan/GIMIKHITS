@@ -5,8 +5,8 @@ export class LaunchAudio {
   private voices=new Set<AudioScheduledSourceNode>();
   async enable(){
     this.context??=new AudioContext();
-    if(!this.master){this.master=this.context.createGain();this.master.gain.value=.7;this.master.connect(this.context.destination);}
-    await this.context.resume();this.master.gain.setTargetAtTime(.7,this.context.currentTime,.05);
+    if(!this.master){this.master=this.context.createGain();this.master.gain.value=1;this.master.connect(this.context.destination);}
+    await this.context.resume();this.master.gain.setTargetAtTime(1,this.context.currentTime,.05);
   }
   mute(){this.stop();if(this.context&&this.master)this.master.gain.setTargetAtTime(0,this.context.currentTime,.04);}
   stop(){for(const voice of this.voices){try{voice.stop();}catch{}}this.voices.clear();}

@@ -1,5 +1,6 @@
 import type { EventRuntime } from './event-store';
 import { launchLinks } from './launch-routing';
+const VIP_ACCESS_CODE = '290978';
 export function createEventHandler(runtime: EventRuntime) {
 const json = (value: unknown, status = 200, cookie?: string, cacheControl = 'private, no-store') => new Response(JSON.stringify(value), {
   status, headers: { 'Content-Type': 'application/json', 'Cache-Control': cacheControl, ...(cookie ? {'Set-Cookie': cookie} : {}) },
@@ -21,7 +22,7 @@ const countSql = '(SELECT COUNT(*) FROM activations WHERE epoch=event.epoch)';
 async function event() {
   const existing = await runtime.DB.prepare(`SELECT *, ${countSql} AS audience FROM event WHERE id=1`).first<EventRow>();
   if (existing) return existing;
-  await runtime.DB.prepare('INSERT OR IGNORE INTO event (id, epoch, code) VALUES (1, ?, ?)').bind(crypto.randomUUID(), String(crypto.getRandomValues(new Uint32Array(1))[0] % 900000 + 100000)).run();
+  await runtime.DB.prepare('INSERT OR IGNORE INTO event (id, epoch, code) VALUES (1, ?, ?)').bind(crypto.randomUUID(), VIP_ACCESS_CODE).run();
   return (await runtime.DB.prepare(`SELECT *, ${countSql} AS audience FROM event WHERE id=1`).first()) as EventRow;
 }
 async function snapshot(r: Request, sharedAudience = false) {
@@ -32,7 +33,7 @@ async function snapshot(r: Request, sharedAudience = false) {
   const total = row.audience + row.boost;
   const phase = row.phase === 'collecting' && total >= row.quota ? 'ready' : row.phase;
   return { epoch:row.epoch, quota:row.quota, total, audience:row.audience, boost:isOperator ? row.boost : undefined,
-    paused:!!row.paused, phase, code: !sharedAudience && phase === 'ready' ? row.code : undefined,
+    paused:!!row.paused, phase, code: !sharedAudience && phase === 'ready' ? VIP_ACCESS_CODE : undefined,
     launchedAt:row.launched_at, videoUrl:sharedAudience ? '' : row.video_url, activated, operator:isOperator, serverTime:Date.now(), configured:true, links:launchLinks(r.url,runtime.EVENT_BASE_DOMAIN) };
 }
 async function GET(r: Request) {
@@ -65,7 +66,7 @@ async function POST(r: Request) {
       return json(response,200,cookie(r,'hits_device',device));
     }
     if (body.action === 'launch') {
-      if (body.code !== row.code) return json({error:'That code does not match. Please try again.'},400);
+      if (body.code !== VIP_ACCESS_CODE) return json({error:'That code does not match. Please try again.'},400);
       const result = await runtime.DB.prepare(`UPDATE event SET phase='launching',launched_at=? WHERE id=1 AND epoch=? AND code=? AND phase='collecting' AND ${countSql}+boost>=quota`).bind(Date.now(),row.epoch,body.code).run();
       if (!result.meta.changes) return json({error:'The core must be fully charged before launch.'},409);
       return json(await snapshot(r));
@@ -87,7 +88,7 @@ async function POST(r: Request) {
     } else if (body.action === 'reset') {
       await runtime.DB.batch([
         runtime.DB.prepare('DELETE FROM activations WHERE epoch IS NOT NULL'),
-        runtime.DB.prepare("UPDATE event SET epoch=?,boost=0,paused=0,phase='collecting',launched_at=NULL,code=? WHERE id=1").bind(crypto.randomUUID(),String(crypto.getRandomValues(new Uint32Array(1))[0]%900000+100000)),
+        runtime.DB.prepare("UPDATE event SET epoch=?,boost=0,paused=0,phase='collecting',launched_at=NULL,code=? WHERE id=1").bind(crypto.randomUUID(),VIP_ACCESS_CODE),
         runtime.DB.prepare('DELETE FROM login_attempts WHERE bucket IS NOT NULL'),
       ]);
     } else return json({error:'Unknown control.'},400);

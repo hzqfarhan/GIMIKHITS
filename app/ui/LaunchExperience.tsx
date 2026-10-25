@@ -214,6 +214,27 @@ export default function LaunchExperience({ view }: { view: LaunchView }) {
     document.addEventListener('keydown', handle);
     return () => { document.removeEventListener('keydown', handle); previous?.focus(); };
   }, [reset]);
+  useEffect(() => {
+    if (view !== 'main' || !panelReady || launching || reset) return;
+    codeInput.current?.focus({ preventScroll: true });
+    const handleCodeKey = (event: KeyboardEvent) => {
+      if (event.metaKey || event.ctrlKey || event.altKey || busy) return;
+      if (/^[0-9]$/.test(event.key)) {
+        event.preventDefault();
+        setCode(current => (current + event.key).slice(0, 6));
+      } else if (event.key === 'Backspace') {
+        event.preventDefault();
+        setCode(current => current.slice(0, -1));
+      } else if (event.key === 'Delete' || event.key === 'Escape') {
+        event.preventDefault();
+        setCode('');
+      } else return;
+      setError('');
+      if (sound) audio.current?.cue('tap');
+    };
+    window.addEventListener('keydown', handleCodeKey);
+    return () => window.removeEventListener('keydown', handleCodeKey);
+  }, [view, panelReady, launching, reset, busy, sound, setError]);
   useEffect(() => { if (sound && view === 'main' && cue !== 'idle') audio.current?.cue(cue); }, [cue, sound, view]);
   useEffect(() => {
     if(view !== 'main') return;
