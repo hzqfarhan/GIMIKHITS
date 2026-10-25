@@ -7,7 +7,6 @@ import { ArrowUpRight, ArrowRight, Check, Copy, Delete, Expand, Fingerprint, Pau
 import { HitsLogo, ProgramStrip } from './Brand';
 import LogoCarousel from './LogoCarousel';
 import EnergyColumn from './EnergyColumn';
-import { ThemeToggle } from './ThemeProvider';
 import LaunchSequence, { phaseAt } from './LaunchSequence';
 import AccessUnlock from './AccessUnlock';
 import TechBackground from './TechBackground';
@@ -283,7 +282,7 @@ export default function LaunchExperience({ view }: { view: LaunchView }) {
   const tools = <div className="stage-tools"><div>{status}</div>{view!=='main'&&<div><button onClick={toggleSound} aria-pressed={sound}>{sound ? <Volume2 size={15}/>:<VolumeX size={15}/>}Sound {sound?'on':'off'}</button><button onClick={()=>setFocus(!focus)} aria-pressed={focus}>{focus?'Show navigation':'Presentation mode'}</button><button onClick={fullscreen}><Expand size={15}/>Fullscreen</button></div>}</div>;
 
   return <main className={`experience view-${view} ${focus?'focus-mode':''} ${panelReady?'is-ready':''} ${launching?'is-launching':''}`}>
-    <ThemeToggle/><div className="ambient-grid" aria-hidden="true"/><div className="ambient-glow" aria-hidden="true"/><TechBackground/>
+    <div className="ambient-grid" aria-hidden="true"/><div className="ambient-glow" aria-hidden="true"/><TechBackground/>
     {(view==='audience'||view==='qr')&&<BackgroundScene/>}
     {view!=='qr'&&view!=='audience'&&<header className="site-header"><a className="brand-lockup" href={links.main} aria-label="HITS main stage"><HitsLogo/><span className="brand-divider"/><span>HUSSEIN INNOVATION<br/>& TALENT SYMPOSIUM</span></a>{view!=='main'&&<nav aria-label="Launch views"> {(['main','qr','bypass','audience'] as const).map(item=><a key={item} href={links[item]} className={view===item?'active':''}>{item==='main'?'Main stage':item==='qr'?'QR screen':item==='bypass'?'Bypass':'Audience'}{item==='audience'&&<ArrowUpRight size={13}/>}</a>)}</nav>}<span className="header-edition">UTHM <i/> LIVE LAUNCH</span></header>}
 
