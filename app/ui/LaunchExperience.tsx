@@ -215,26 +215,32 @@ export default function LaunchExperience({ view }: { view: LaunchView }) {
     return () => { document.removeEventListener('keydown', handle); previous?.focus(); };
   }, [reset]);
   useEffect(() => {
-    if (view !== 'main' || !panelReady || launching || reset) return;
-    codeInput.current?.focus({ preventScroll: true });
+    if (view !== 'main' || !ready || launching || reset) return;
+    if (panelReady) codeInput.current?.focus({ preventScroll: true });
     const handleCodeKey = (event: KeyboardEvent) => {
-      if (event.metaKey || event.ctrlKey || event.altKey || busy) return;
-      if (/^[0-9]$/.test(event.key)) {
+      if (event.isComposing || event.metaKey || event.ctrlKey || event.altKey || busy) return;
+      const digitMatch = /^(?:Digit|Numpad)([0-9])$/.exec(event.code);
+      const pressedDigit = /^[0-9]$/.test(event.key) ? event.key : digitMatch?.[1];
+      if (pressedDigit) {
         event.preventDefault();
-        setCode(current => (current + event.key).slice(0, 6));
+        setCode(current => (current + pressedDigit).slice(0, 6));
       } else if (event.key === 'Backspace') {
         event.preventDefault();
         setCode(current => current.slice(0, -1));
       } else if (event.key === 'Delete' || event.key === 'Escape') {
         event.preventDefault();
         setCode('');
+      } else if (event.key === 'Enter' && panelReady && code.length === 6) {
+        event.preventDefault();
+        codeInput.current?.form?.requestSubmit();
+        return;
       } else return;
       setError('');
       if (sound) audio.current?.cue('tap');
     };
-    window.addEventListener('keydown', handleCodeKey);
-    return () => window.removeEventListener('keydown', handleCodeKey);
-  }, [view, panelReady, launching, reset, busy, sound, setError]);
+    document.addEventListener('keydown', handleCodeKey, true);
+    return () => document.removeEventListener('keydown', handleCodeKey, true);
+  }, [view, ready, panelReady, launching, reset, busy, sound, code.length, setError]);
   useEffect(() => { if (sound && view === 'main' && cue !== 'idle') audio.current?.cue(cue); }, [cue, sound, view]);
   useEffect(() => {
     if(view !== 'main') return;
@@ -288,7 +294,7 @@ export default function LaunchExperience({ view }: { view: LaunchView }) {
           <div className="stage-copy"><span className="eyebrow"><i/> THE OFFICIAL LAUNCH EXPERIENCE</span><LogoCarousel/><h1>Ideas become<br/><em>impact.</em></h1><p>A room full of possibility.<br/>One moment to bring it all to life.</p><a className="qr-link" href={links.qr}><span><QrCode size={20}/></span><div>SCAN. ACTIVATE. IGNITE.<small>Open the audience QR screen <ArrowUpRight size={13}/></small></div></a></div>
           <div className="reactor-stage"><div className="reactor-label top"><span>HITS ENERGY CORE</span><i/> SYSTEM ONLINE</div>{!launching&&<Core progress={progress} phase="idle" framing={1.22}/>}<EnergyColumn total={displayTotal} quota={state?.quota??100} paused={state?.paused} loaded={!!state}/><div className="reactor-label bottom"><span>INNOVATION / TALENT / POSSIBILITIES</span><span className="reactor-bars">▁ ▃ ▅ ▂ ▆ ▄ ▁</span></div></div>
         </>:<>
-          <div className="ready-story"><span className="eyebrow"><i/> ENERGY TARGET REACHED</span><HitsLogo className="ready-hits"/><h1>The future<br/>is <em>unlocked.</em></h1><p>The room has done its part.<br/>Now, the moment is yours.</p><div className="ready-code"><span>YOUR VIP ACCESS CODE</span><strong>{state?.code}</strong><small>Enter this code on the launch console.</small></div><div className="ready-reactor">{!launching&&<Core progress={1} phase="assemble"/>}</div></div>
+          <div className="ready-story"><span className="eyebrow"><i/> ENERGY TARGET REACHED</span><HitsLogo className="ready-hits"/><h1>The future<br/>is <em>unlocked.</em></h1><p>The room has done its part.<br/>Now, the moment is yours.</p><div className="ready-reactor">{!launching&&<Core progress={1} phase="assemble"/>}</div></div>
           <section className="access-console" aria-labelledby="access-title"><div className="console-heading"><span className="console-icon"><Fingerprint size={28}/></span><div><span className="eyebrow">VIP AUTHORISATION</span><h2 id="access-title">Begin the extraordinary.</h2></div></div><form onSubmit={event=>{event.preventDefault();void launch();}}><label className="code-label" htmlFor="vip-code">ENTER THE SIX-DIGIT ACCESS CODE <span>{code.length} / 6</span></label><div className="code-entry" onClick={()=>codeInput.current?.focus()}><div className="digit-slots" aria-hidden="true">{Array.from({length:6},(_,i)=><span key={i} className={`${code[i]?'filled':''} ${code.length===i?'current':''}`}>{code[i]||<i/>}</span>)}</div><input ref={codeInput} id="vip-code" aria-label="VIP access code" inputMode="numeric" autoComplete="off" pattern="[0-9]{6}" maxLength={6} value={code} onChange={event=>setCode(event.target.value.replace(/\D/g,'').slice(0,6))}/></div><div className="keypad" aria-label="On-screen numeric keyboard">{['1','2','3','4','5','6','7','8','9','clear','0','back'].map(value=><button key={value} type="button" className={value.length>1?'key-function':''} aria-label={value==='back'?'Delete last digit':value==='clear'?'Clear code':value} onClick={()=>digit(value)} disabled={busy}>{value==='back'?<Delete size={24}/>:value==='clear'?'CLEAR':value}</button>)}</div><button className="launch-button" type="submit" disabled={busy||!online||code.length!==6}><span><Zap size={24}/>LAUNCH HITS</span><ArrowRight size={26}/></button><div className="console-foot"><Fingerprint size={12}/>ENTER THE SIX-DIGIT VIP CODE TO INITIATE LAUNCH</div></form></section>
         </>}
       </section>
