@@ -15,7 +15,7 @@ The older `/activate` and `/control` links remain aliases for audience and bypas
 
 The QR screen places a high-contrast code on the left and a Three.js phone on the right. The phone demonstrates the activation confirmation without contributing to the real count. Its energy readout reflects the live event. The central orb uses an extruded silhouette traced from the supplied HITS logo, with a textured plaque fallback. Space Grotesk and Orbitron are hosted locally; their licenses are included under `public/fonts/`.
 
-Enable **Sound on** on the main screen before the VIP arrives. Original synthesised sounds cover incoming activations, keypad touches, verification, assembly, charging, countdown and ignition. Sound can also be muted during the cinematic. Browser autoplay rules require this initial user interaction; final video audio remains controlled by the video itself.
+The main and QR screens loop **The Final Ascent** while the audience scans and the energy bar fills, then stop the music at 100%. Use **Play waiting music** if the browser requires a click, and **Sound on/off** to control it. Original synthesised cues cover incoming activations and the launch sequence on the main screen; audience phones and bypass controls stay silent. Final video audio remains controlled by the video itself.
 
 For local host-routing rehearsal, the four `main.localhost`, `qr.localhost`, `bypass.localhost`, and `audience.localhost` names are supported, retaining port 5173. Some systems require these names to be added to local DNS/hosts; the path routes always work. A localhost QR cannot be reached from an audience phone. Use the hosted audience URL at the venue.
 
@@ -32,6 +32,8 @@ For local host-routing rehearsal, the four `main.localhost`, `qr.localhost`, `by
 Contributions survive reloads. Audience requests and boosts enforce the target in atomic database statements. Cookie deduplication limits a browser, not a person: another browser or clearing cookies permits another activation. Audience activations freeze at the target and after launch. Temporary disconnects preserve the last received display state; new activations require the server connection.
 
 ## Final video
+
+The supplied **gimik HITS** film is served as `/media/gimik-hits-final.mp4` (1080p H.264/AAC, 71.4 seconds). After it ends, the main display returns to the energy bar at 100% and holds there until reset. Completion is remembered in that browser across refreshes for the current rehearsal.
 
 Put a video in `public/media/` and configure `/media/filename.mp4` in bypass, or use a direct HTTPS MP4 URL. A YouTube page is not a direct video file. A playback button appears if the browser blocks automatic playback. Rehearse the actual video, sound output, display and venue network before the event.
 

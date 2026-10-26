@@ -11,6 +11,7 @@ import LaunchSequence, { phaseAt } from './LaunchSequence';
 import AccessUnlock from './AccessUnlock';
 import TechBackground from './TechBackground';
 import { LaunchAudio } from './LaunchAudio';
+import WaitingMusic from './WaitingMusic';
 import { useLaunch, SEQUENCE_SECONDS, type LaunchView } from './useLaunch';
 const Core = dynamic(() => import('./Core'), { ssr: false });
 const PhonePreview = dynamic(() => import('./PhonePreview'), { ssr: false });
@@ -29,7 +30,7 @@ export default function LaunchExperience({ view }: { view: LaunchView }) {
   const [focus, setFocus] = useState(false);
   const [videoBlocked, setVideoBlocked] = useState(false);
   const [videoError, setVideoError] = useState(false);
-  const [videoEnded, setVideoEnded] = useState(false);
+  const [videoSession, setVideoSession] = useState({ epoch: '', ended: false });
   const [videoPlaying, setVideoPlaying] = useState(false);
   const [displayTotal, setDisplayTotal] = useState(0);
   const [boosting, setBoosting] = useState(false);
@@ -46,17 +47,18 @@ export default function LaunchExperience({ view }: { view: LaunchView }) {
   const currentQuota = state?.quota ?? 100;
   const ready = (state?.phase === 'ready' || targetTotal >= currentQuota) && displayTotal >= currentQuota;
   const launching = state?.phase === 'launching';
+  const videoEnded = videoSession.epoch === state?.epoch && videoSession.ended;
   const unlockKey = state ? state.epoch + ':' + state.code : '';
-  const unlocking = view === 'main' && ready && !launching && unlockedPanel !== unlockKey;
-  const panelReady = ready && !unlocking;
+  const unlocking = view === 'main' && ready && !launching && !videoEnded && unlockedPanel !== unlockKey;
+  const panelReady = ready && !unlocking && !videoEnded;
   useEffect(() => {
     if (!unlocking) return;
     const timer = window.setTimeout(() => setUnlockedPanel(unlockKey), 4000);
     return () => window.clearTimeout(timer);
   }, [ready, unlocking, unlockKey]);
-  const progress = state && currentQuota > 0 ? Math.min(1, displayTotal / currentQuota) : 0;
-  const inVideo = launching && elapsed >= SEQUENCE_SECONDS;
-  const playbackUrl = state?.videoUrl || '/media/gimik-hits.mp4';
+  const progress = videoEnded ? 1 : state && currentQuota > 0 ? Math.min(1, displayTotal / currentQuota) : 0;
+  const inVideo = launching && elapsed >= SEQUENCE_SECONDS && !videoEnded && videoSession.epoch === state?.epoch;
+  const playbackUrl = !state?.videoUrl || state.videoUrl === '/media/gimik-hits.mp4' ? '/media/gimik-hits-final.mp4' : state.videoUrl;
   const audienceUrl = origin ? new URL(links.audience, origin).href : links.audience;
   const cue = launching ? elapsed >= SEQUENCE_SECONDS ? 'idle' : elapsed >= 12 && elapsed < 17 ? `countdown-${Math.ceil(17-elapsed)}` : phaseAt(elapsed) : ready ? 'ready' : 'idle';
 
@@ -72,19 +74,32 @@ export default function LaunchExperience({ view }: { view: LaunchView }) {
     if (state && !settingsLoaded.current) { setQuota(String(state.quota)); setVideoUrl(state.videoUrl); settingsLoaded.current = true; }
   }, [state]);
   useEffect(() => {
-    queueMicrotask(() => { setCode(''); setVideoBlocked(false); setVideoError(false); setVideoEnded(false); setVideoPlaying(false); });
+    const epoch = state?.epoch;
+    if (!epoch) return;
+    let ended = false;
+    try { ended = localStorage.getItem('hits-video-completed') === epoch; } catch {}
+    queueMicrotask(() => { setCode(''); setVideoBlocked(false); setVideoError(false); setVideoSession({ epoch, ended }); setVideoPlaying(false); });
     audio.current?.stop();
     if (video.current) { video.current.pause(); video.current.currentTime = 0; }
   }, [state?.epoch]);
   useEffect(() => {
-    queueMicrotask(() => { setVideoBlocked(false); setVideoError(false); setVideoEnded(false); setVideoPlaying(false); });
+    queueMicrotask(() => { setVideoBlocked(false); setVideoError(false); setVideoPlaying(false); });
   }, [state?.videoUrl]);
   useEffect(() => {
     if(inVideo)audio.current?.stop();
     if (!inVideo || view !== 'main') return;
     const player = video.current;
-    if (player) { player.muted = false; void player.play().then(() => setVideoBlocked(false)).catch(() => setVideoBlocked(true)); }
+    let cancelled = false;
+    if (player) { player.muted = false; void player.play().then(() => { if (cancelled) player.pause(); else setVideoBlocked(false); }).catch(() => { if (!cancelled) setVideoBlocked(true); }); }
+    return () => { cancelled = true; player?.pause(); };
   }, [inVideo, playbackUrl, view]);
+
+  function finishVideo() {
+    if (!inVideo || !state) return;
+    video.current?.pause();
+    setVideoSession({ epoch: state.epoch, ended: true });
+    try { localStorage.setItem('hits-video-completed', state.epoch); } catch {}
+  }
 
   // Sync displayTotal with state on initial load
   useEffect(() => {
@@ -257,7 +272,7 @@ export default function LaunchExperience({ view }: { view: LaunchView }) {
     return () => { stopped = true; document.removeEventListener('pointerdown', unlock); document.removeEventListener('keydown', unlock); engine.close(); if(audio.current === engine) audio.current = null; };
   }, [view]);
   async function toggleSound() {
-    try{if (!sound) { audio.current ??= new LaunchAudio(); await audio.current.enable(); audio.current.cue('tap'); }else audio.current?.mute();setSound(!sound);}catch{setError('Sound could not start. Check this browser’s audio settings.');}
+    try{if (!sound && view === 'main') { audio.current ??= new LaunchAudio(); await audio.current.enable(); audio.current.cue('tap'); }else audio.current?.mute();setSound(!sound);}catch{setError('Sound could not start. Check this browser’s audio settings.');}
   }
   async function fullscreen() {
     try { if (document.fullscreenElement) await document.exitFullscreen(); else await document.documentElement.requestFullscreen(); }
@@ -279,9 +294,11 @@ export default function LaunchExperience({ view }: { view: LaunchView }) {
     try { await navigator.clipboard.writeText(value); setNotice('Link copied.'); } catch { setNotice(value); }
   }
   const status = <span className={`connection ${online ? 'connected' : ''}`}><i/>{online ? 'LIVE CONNECTION' : 'CONNECTING'}</span>;
-  const tools = <div className="stage-tools"><div>{status}</div>{view!=='main'&&<div><button onClick={toggleSound} aria-pressed={sound}>{sound ? <Volume2 size={15}/>:<VolumeX size={15}/>}Sound {sound?'on':'off'}</button><button onClick={()=>setFocus(!focus)} aria-pressed={focus}>{focus?'Show navigation':'Presentation mode'}</button><button onClick={fullscreen}><Expand size={15}/>Fullscreen</button></div>}</div>;
+  const soundControl = <button onClick={toggleSound} aria-pressed={sound} aria-label={sound?'Mute sound':'Enable sound'}>{sound ? <Volume2 size={15}/>:<VolumeX size={15}/>}Sound {sound?'on':'off'}</button>;
+  const tools = <div className="stage-tools"><div>{status}</div><div>{soundControl}<button onClick={()=>setFocus(!focus)} aria-pressed={focus}>{focus?'Show navigation':'Presentation mode'}</button><button onClick={fullscreen}><Expand size={15}/>Fullscreen</button></div></div>;
 
-  return <main className={`experience view-${view} ${focus?'focus-mode':''} ${panelReady?'is-ready':''} ${launching?'is-launching':''}`}>
+  return <main className={`experience view-${view} ${focus?'focus-mode':''} ${panelReady?'is-ready':''} ${launching&&!videoEnded?'is-launching':''}`}>
+    {(view==='main'||view==='qr')&&<WaitingMusic active={Boolean(state)&&!ready&&!launching} enabled={sound} epoch={state?.epoch}/>}
     <div className="ambient-grid" aria-hidden="true"/><div className="ambient-glow" aria-hidden="true"/><TechBackground/>
     {(view==='audience'||view==='qr')&&<BackgroundScene/>}
     {view!=='qr'&&view!=='audience'&&<header className="site-header"><a className="brand-lockup" href={links.main} aria-label="HITS main stage"><HitsLogo/><span className="brand-divider"/><span>HUSSEIN INNOVATION<br/>& TALENT SYMPOSIUM</span></a>{view!=='main'&&<nav aria-label="Launch views"> {(['main','qr','bypass','audience'] as const).map(item=><a key={item} href={links[item]} className={view===item?'active':''}>{item==='main'?'Main stage':item==='qr'?'QR screen':item==='bypass'?'Bypass':'Audience'}{item==='audience'&&<ArrowUpRight size={13}/>}</a>)}</nav>}<span className="header-edition">UTHM <i/> LIVE LAUNCH</span></header>}
@@ -291,7 +308,7 @@ export default function LaunchExperience({ view }: { view: LaunchView }) {
         <div className="stage-coordinates" aria-hidden="true"><span>01 / COLLECTIVE ENERGY</span><span>INNOVATION HAS NO LIMITS</span></div>
         {!panelReady?<>
           <div className="stage-copy"><span className="eyebrow"><i/> THE OFFICIAL LAUNCH EXPERIENCE</span><LogoCarousel/><h1>Ideas become<br/><em>impact.</em></h1><p>A room full of possibility.<br/>One moment to bring it all to life.</p><a className="qr-link" href={links.qr}><span><QrCode size={20}/></span><div>SCAN. ACTIVATE. IGNITE.<small>Open the audience QR screen <ArrowUpRight size={13}/></small></div></a></div>
-          <div className="reactor-stage"><div className="reactor-label top"><span>HITS ENERGY CORE</span><i/> SYSTEM ONLINE</div>{!launching&&<Core progress={progress} phase="idle" framing={1.22}/>}<EnergyColumn total={displayTotal} quota={state?.quota??100} paused={state?.paused} loaded={!!state}/><div className="reactor-label bottom"><span>INNOVATION / TALENT / POSSIBILITIES</span><span className="reactor-bars">▁ ▃ ▅ ▂ ▆ ▄ ▁</span></div></div>
+          <div className="reactor-stage"><div className="reactor-label top"><span>HITS ENERGY CORE</span><i/> SYSTEM ONLINE</div>{(!launching||videoEnded)&&<Core progress={progress} phase="idle" framing={1.22}/>}<EnergyColumn total={videoEnded?currentQuota:displayTotal} quota={currentQuota} paused={state?.paused} loaded={!!state}/><div className="reactor-label bottom"><span>INNOVATION / TALENT / POSSIBILITIES</span><span className="reactor-bars">▁ ▃ ▅ ▂ ▆ ▄ ▁</span></div></div>
         </>:<>
           <div className="ready-story"><span className="eyebrow"><i/> ENERGY TARGET REACHED</span><HitsLogo className="ready-hits"/><h1>The future<br/>is <em>unlocked.</em></h1><p>The room has done its part.<br/>Now, the moment is yours.</p><div className="ready-reactor">{!launching&&<Core progress={1} phase="assemble"/>}</div></div>
           <section className="access-console" aria-labelledby="access-title"><div className="console-heading"><span className="console-icon"><Fingerprint size={28}/></span><div><span className="eyebrow">VIP AUTHORISATION</span><h2 id="access-title">Begin the extraordinary.</h2></div></div><form onSubmit={event=>{event.preventDefault();void launch();}}><label className="code-label" htmlFor="vip-code">ENTER THE SIX-DIGIT ACCESS CODE <span>{code.length} / 6</span></label><div className="code-entry" onClick={()=>codeInput.current?.focus()}><div className="digit-slots" aria-hidden="true">{Array.from({length:6},(_,i)=><span key={i} className={`${code[i]?'filled':''} ${code.length===i?'current':''}`}>{code[i]||<i/>}</span>)}</div><input ref={codeInput} id="vip-code" aria-label="VIP access code" inputMode="numeric" autoComplete="off" pattern="[0-9]{6}" maxLength={6} value={code} onChange={event=>setCode(event.target.value.replace(/\D/g,'').slice(0,6))}/></div><div className="keypad" aria-label="On-screen numeric keyboard">{['1','2','3','4','5','6','7','8','9','clear','0','back'].map(value=><button key={value} type="button" className={value.length>1?'key-function':''} aria-label={value==='back'?'Delete last digit':value==='clear'?'Clear code':value} onClick={()=>digit(value)} disabled={busy}>{value==='back'?<Delete size={24}/>:value==='clear'?'CLEAR':value}</button>)}</div><button className="launch-button" type="submit" disabled={busy||!online||code.length!==6}><span><Zap size={24}/>LAUNCH HITS</span><ArrowRight size={26}/></button><div className="console-foot"><Fingerprint size={12}/>ENTER THE SIX-DIGIT VIP CODE TO INITIATE LAUNCH</div></form></section>
@@ -300,7 +317,7 @@ export default function LaunchExperience({ view }: { view: LaunchView }) {
       <ProgramStrip/>{tools}
     </>}
 
-    {view==='qr'&&<section className="qr-only qr-showcase"><div className="qr-top"><HitsLogo/><span className="qr-top-title">THE OFFICIAL HITS LAUNCH</span>{status}<button className="icon-button" onClick={fullscreen} aria-label="Fullscreen QR"><Expand size={20}/></button></div><div className="qr-showcase-grid"><div className="qr-invitation"><span className="eyebrow">YOUR PHONE. YOUR SPARK. OUR FUTURE.</span><h1>Be part of<br/><em>the ignition.</em></h1><p>A room full of ideas. One shared moment.<br/>Scan the code and bring HITS to life.</p><div className="qr-scanner-shell"><div className="qr-frame">{qr?<img src={qr} alt="Scan this QR code to open the HITS audience activation page"/>:<span>Preparing QR code…</span>}<i className="corner tl"/><i className="corner tr"/><i className="corner bl"/><i className="corner br"/></div><div className="qr-scan-caption"><QrCode size={16}/><span>SCAN TO CONNECT</span><i/></div></div><a className="qr-readable" href={audienceUrl}>{audienceUrl.replace(/^https?:\/\//,'')} <ArrowUpRight size={14}/></a><div className="qr-steps"><span><b>01</b>SCAN THE CODE</span><i/><span><b>02</b>TAP ACTIVATE</span><i/><span><b>03</b>WATCH THE STAGE</span></div></div><div className="qr-phone-stage"><div className="phone-hud"><span>YOUR CONNECTION TO THE FUTURE</span><i/></div><PhonePreview progress={progress} total={displayTotal} quota={state?.quota??100}/><div className="phone-ground"/><div className="qr-live-energy"><span><i/> LIVE COLLECTIVE ENERGY</span><strong>{displayTotal}<small> / {state?.quota??100}</small></strong></div></div><EnergyColumn total={displayTotal} quota={state?.quota??100} paused={state?.paused} loaded={!!state}/></div><div className="qr-bottom"><span>HUSSEIN INNOVATION & TALENT SYMPOSIUM · UTHM</span><a href={links.main}>Main stage <ArrowUpRight size={13}/></a></div></section>}
+    {view==='qr'&&<section className="qr-only qr-showcase"><div className="qr-top"><HitsLogo/><span className="qr-top-title">THE OFFICIAL HITS LAUNCH</span>{status}{soundControl}<button className="icon-button" onClick={fullscreen} aria-label="Fullscreen QR"><Expand size={20}/></button></div><div className="qr-showcase-grid"><div className="qr-invitation"><span className="eyebrow">YOUR PHONE. YOUR SPARK. OUR FUTURE.</span><h1>Be part of<br/><em>the ignition.</em></h1><p>A room full of ideas. One shared moment.<br/>Scan the code and bring HITS to life.</p><div className="qr-scanner-shell"><div className="qr-frame">{qr?<img src={qr} alt="Scan this QR code to open the HITS audience activation page"/>:<span>Preparing QR code…</span>}<i className="corner tl"/><i className="corner tr"/><i className="corner bl"/><i className="corner br"/></div><div className="qr-scan-caption"><QrCode size={16}/><span>SCAN TO CONNECT</span><i/></div></div><a className="qr-readable" href={audienceUrl}>{audienceUrl.replace(/^https?:\/\//,'')} <ArrowUpRight size={14}/></a><div className="qr-steps"><span><b>01</b>SCAN THE CODE</span><i/><span><b>02</b>TAP ACTIVATE</span><i/><span><b>03</b>WATCH THE STAGE</span></div></div><div className="qr-phone-stage"><div className="phone-hud"><span>YOUR CONNECTION TO THE FUTURE</span><i/></div><PhonePreview progress={progress} total={displayTotal} quota={state?.quota??100}/><div className="phone-ground"/><div className="qr-live-energy"><span><i/> LIVE COLLECTIVE ENERGY</span><strong>{displayTotal}<small> / {state?.quota??100}</small></strong></div></div><EnergyColumn total={displayTotal} quota={state?.quota??100} paused={state?.paused} loaded={!!state}/></div><div className="qr-bottom"><span>HUSSEIN INNOVATION & TALENT SYMPOSIUM · UTHM</span><a href={links.main}>Main stage <ArrowUpRight size={13}/></a></div></section>}
 
     {view==='audience'&&<section className={`audience-screen ${state?.activated?'has-activated':''}`}><div className="audience-top"><a href={links.main} aria-label="HITS main stage"><HitsLogo/></a>{status}</div><div className="audience-copy"><span className="eyebrow">YOU ARE PART OF WHAT COMES NEXT</span><h1>Your spark.<br/><em>Our future.</em></h1><p>{launching?'Look to the stage. This is our moment.':ready?'The core is charged. All eyes on the stage.':state?.activated?'Your energy is in. Together, we make it happen.':'A single touch. A collective moment.\nHelp us bring HITS to life.'}</p></div><div className="audience-core"><Core progress={progress} phase={launching?'burst':ready?'assemble':'idle'}/>{state?.activated&&<span className="spark-confirmed"><Check size={16}/> YOUR SPARK IS CONNECTED</span>}</div><button className={`activate-button ${state?.activated?'activated':''}`} disabled={busy||!online||!state||state.activated||state.paused||ready||launching} onClick={async()=>{if(await action('activate'))setNotice('Your spark has joined the HITS core.');}}>{state?.activated?<Check size={32}/>:<Fingerprint size={36}/>}<span>{launching?'HITS IS LAUNCHING':state?.activated?'YOU’RE CONNECTED':ready?'THE CORE IS CHARGED':state?.paused?'HOLD YOUR SPARK':busy?'CONNECTING…':'ACTIVATE'}<small>{state?.activated?'Thank you for being part of the moment':ready||launching?'Watch the main stage':'Touch to send your energy'}</small></span>{!state?.activated&&<ArrowRight size={24}/>}</button><div className="audience-meter"><div><span>OUR COLLECTIVE ENERGY</span><strong>{displayTotal}<small> / {state?.quota??100}</small></strong></div><div className="smooth-meter"><i style={{width:`${progress*100}%`}}/></div></div><div className="audience-bottom">FIVE PLATFORMS. ONE EXTRAORDINARY FUTURE.<span>HITS × IUIC · UNIVERSITI TUN HUSSEIN ONN MALAYSIA</span></div></section>}
 
@@ -311,7 +328,7 @@ export default function LaunchExperience({ view }: { view: LaunchView }) {
     {(error||notice)&&<div className={`toast ${error?'toast-error':''}`} role={error?'alert':'status'}><span>{error||notice}</span><button aria-label="Dismiss notification" onClick={()=>{setError('');setNotice('');}}><X size={17}/></button></div>}
     {reset&&<div className="modal-backdrop"><section role="dialog" aria-modal="true" aria-labelledby="reset-title" className="modal"><h2 id="reset-title">Start a fresh rehearsal?</h2><p>This clears the energy, stops the launch, and generates a new VIP code. Your target and video settings are kept.</p><div className="control-actions"><button className="button secondary" onClick={()=>setReset(false)}>Keep this session</button><button className="button danger" disabled={busy} onClick={async()=>{boostAbortRef.current=true;if(await action('reset')){setReset(false);setDisplayTotal(0);setNotice('Fresh rehearsal ready.');}}}>Reset now</button></div></section></div>}
     {unlocking&&<AccessUnlock key={unlockKey}/>}
-    {launching&&!videoPlaying&&view==='main'&&<LaunchSequence elapsed={elapsed} placeholder={false} bypassUrl={links.bypass}/>}
-    {view==='main'&&<div className={inVideo?'video-stage':'preload-video'} aria-hidden={!inVideo}><video style={{opacity: videoPlaying ? 1 : 0}} onPlaying={()=>{if(inVideo)setVideoPlaying(true);}} ref={video} src={playbackUrl} playsInline preload="auto" onEnded={()=>setVideoEnded(true)} onError={()=>setVideoError(true)} controls={inVideo&&(videoBlocked||videoError)}/>{inVideo&&videoBlocked&&!videoError&&<button className="button primary video-recovery" onClick={()=>video.current?.play().then(()=>setVideoBlocked(false)).catch(()=>setError('Click play again or check the video link.'))}><Play size={22}/>Play continuity video</button>}{inVideo&&videoError&&<div className="video-message"><h2>The video could not load.</h2><p>Update the video link in bypass controls.</p><a href={links.bypass} className="button secondary">Open bypass controls</a></div>}{inVideo&&videoEnded&&<div className="video-message"><HitsLogo/><span className="eyebrow">OFFICIALLY LAUNCHED</span><h2>The future starts with us.</h2><a href={links.bypass} className="text-button">Back to bypass controls <ArrowUpRight size={14}/></a></div>}</div>}
+    {launching&&!videoEnded&&videoSession.epoch===state?.epoch&&!videoPlaying&&view==='main'&&<LaunchSequence elapsed={elapsed} placeholder={false} bypassUrl={links.bypass}/>}
+    {view==='main'&&!videoEnded&&<div className={inVideo?'video-stage':'preload-video'} aria-hidden={!inVideo}><video style={{opacity: videoPlaying ? 1 : 0}} onPlaying={()=>{if(inVideo)setVideoPlaying(true);}} ref={video} src={playbackUrl} playsInline preload="auto" onEnded={finishVideo} onError={()=>setVideoError(true)} controls={inVideo&&(videoBlocked||videoError)}/>{inVideo&&videoBlocked&&!videoError&&<button className="button primary video-recovery" onClick={()=>video.current?.play().then(()=>setVideoBlocked(false)).catch(()=>setError('Click play again or check the video link.'))}><Play size={22}/>Play continuity video</button>}{inVideo&&videoError&&<div className="video-message"><h2>The video could not load.</h2><p>Update the video link in bypass controls.</p><a href={links.bypass} className="button secondary">Open bypass controls</a></div>}</div>}
   </main>;
 }
