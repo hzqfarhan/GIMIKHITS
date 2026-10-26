@@ -21,6 +21,8 @@ In bypass, **Balance the sound** has independent waiting-music and sound-effect 
 
 The effects slider supports up to 200% for an extra boost; music remains capped at 100%. Reset restores the saved waiting-music volume for the next rehearsal.
 
+Bypass uses a dedicated dark red SELADEVS theme, a compact energy overview, and touch-friendly mobile controls. Its bottom bar jumps to Energy, Sound, and Settings. The logo is sourced from `https://seladevs.my/branding/seladevs-logo.png` and served locally in an optimized format.
+
 For local host-routing rehearsal, the four `main.localhost`, `qr.localhost`, `bypass.localhost`, and `audience.localhost` names are supported, retaining port 5173. Some systems require these names to be added to local DNS/hosts; the path routes always work. A localhost QR cannot be reached from an audience phone. Use the hosted audience URL at the venue.
 
 ## Rehearse

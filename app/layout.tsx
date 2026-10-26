@@ -7,6 +7,7 @@ import './viewport.css';
 import './themes.css';
 import './launch-effects.css';
 import './audio-controls.css';
+import './bypass.css';
 import ThemeProvider from './ui/ThemeProvider';
 export const metadata: Metadata = {
   title: 'HITS × IUIC | Ignite the extraordinary',
