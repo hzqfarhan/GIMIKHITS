@@ -40,11 +40,15 @@ async function req(index,action,body={},cookie='',expected=200,shared=false){
 try{
  const initial=await req(0);assert.equal(initial.data.total,0);assert.equal(initial.data.epoch,'legacy-room');assert.deepEqual(initial.data.audioSettings,DEFAULT_AUDIO_SETTINGS);
  const longAudioUrl='https://audio.example/'+'a'.repeat(2048-'https://audio.example/'.length);
- const invalidAudioSettings=[undefined,null,[],{}, {...DEFAULT_AUDIO_SETTINGS,musicVolume:-1},{...DEFAULT_AUDIO_SETTINGS,musicVolume:101}, {...DEFAULT_AUDIO_SETTINGS,musicVolume:25.5},{...DEFAULT_AUDIO_SETTINGS,musicVolume:'25'}, {...DEFAULT_AUDIO_SETTINGS,sfxVolume:-1},{...DEFAULT_AUDIO_SETTINGS,sfxVolume:101},{...DEFAULT_AUDIO_SETTINGS,sfxVolume:0.5},{...DEFAULT_AUDIO_SETTINGS,musicUrl:null},
+ const invalidAudioSettings=[undefined,null,[],{}, {...DEFAULT_AUDIO_SETTINGS,musicVolume:-1},{...DEFAULT_AUDIO_SETTINGS,musicVolume:101}, {...DEFAULT_AUDIO_SETTINGS,musicVolume:25.5},{...DEFAULT_AUDIO_SETTINGS,musicVolume:'25'}, {...DEFAULT_AUDIO_SETTINGS,sfxVolume:-1},{...DEFAULT_AUDIO_SETTINGS,sfxVolume:121},{...DEFAULT_AUDIO_SETTINGS,sfxVolume:0.5},{...DEFAULT_AUDIO_SETTINGS,musicUrl:null},
   ...['http://audio.example/music.mp3','//audio.example/music.mp3','javascript:alert(1)','https://','https://user:pass@audio.example/music.mp3','https://audio.example/music.mp3#clip','https://audio.example/music.mp3#','/media/../../secret','/media/%2e%2e/secret','/media/%2f..%2fsecret','/media/%5c..%5csecret','/media/%00.mp3','/media/','/other/music.mp3',longAudioUrl+'x'].map(musicUrl=>({...DEFAULT_AUDIO_SETTINGS,musicUrl}))];
  for(const audioSettings of invalidAudioSettings) {assert.equal(parseAudioSettings(audioSettings),null);await req(3,'audio-settings',{audioSettings},'',400);}
  assert.deepEqual((await req(0)).data.audioSettings,DEFAULT_AUDIO_SETTINGS,'Invalid writes must not change the saved mix');
- let audioSettings={musicVolume:0,sfxVolume:100,musicUrl:longAudioUrl};
+ const aboveUnityMix={...DEFAULT_AUDIO_SETTINGS,sfxVolume:101};
+ assert.deepEqual(parseAudioSettings(aboveUnityMix),aboveUnityMix);
+ assert.deepEqual((await req(3,'audio-settings',{audioSettings:aboveUnityMix})).data.audioSettings,aboveUnityMix);
+ let audioSettings={musicVolume:0,sfxVolume:120,musicUrl:longAudioUrl};
+ assert.deepEqual(parseAudioSettings(audioSettings),audioSettings);
  await req(3,'audio-settings',{audioSettings});
  for(const index of [0,1,3])assert.deepEqual((await req(index)).data.audioSettings,audioSettings,'Audio settings must synchronize across presentation hosts');
  assert.equal((await req(2,null,{},'',200,true)).data.audioSettings,undefined,'Audience polling omits audio controls');
@@ -64,10 +68,11 @@ try{
  const ready=(await req(0)).data;assert.equal(ready.phase,'ready');
  await req(0,'launch',{code:'wrong'},'',400);
  const launched=(await req(0,'launch',{code:ready.code})).data;assert.equal(launched.phase,'launching');
- audioSettings={musicVolume:35,sfxVolume:65,musicUrl:'https://audio.example/final.mp3?version=2'};
+ audioSettings={musicVolume:35,sfxVolume:120,musicUrl:'https://audio.example/final.mp3?version=2'};
  const adjusted=(await req(3,'audio-settings',{audioSettings})).data;
  assert.deepEqual(adjusted.audioSettings,audioSettings);assert.equal(adjusted.phase,'launching');assert.equal(adjusted.launchedAt,launched.launchedAt);assert.equal(adjusted.quota,10);
  for(let i=0;i<4;i++)assert.equal((await req(i)).data.launchedAt,launched.launchedAt);
+ for(const index of [0,1,3])assert.deepEqual((await req(index)).data.audioSettings,audioSettings,'The 120% SFX setting must synchronize during launch');
  await req(0,'launch',{code:ready.code},'',409);
  assert.equal((await req(2,'activate')).data.total,10);
  await req(3,'reset');const fresh=(await req(2,null,{},tap.cookie)).data;assert.equal(fresh.total,0);assert.equal(fresh.activated,false);assert.notEqual(fresh.epoch,ready.epoch);assert.deepEqual(fresh.audioSettings,audioSettings);
@@ -99,7 +104,7 @@ try{
  const localHandlers=createEventHandler(localRuntime);
  const localSnapshot=await (await localHandlers.GET(new Request('http://localhost/api/event'))).json();
  assert.equal(localSnapshot.epoch,'legacy-sqlite');assert.deepEqual(localSnapshot.audioSettings,DEFAULT_AUDIO_SETTINGS);
- const localMix={musicVolume:0,sfxVolume:100,musicUrl:'/media/test.mp3'};
+ const localMix={musicVolume:0,sfxVolume:120,musicUrl:'/media/test.mp3'};
  const localSave=await localHandlers.POST(new Request('http://localhost/api/event',{method:'POST',body:JSON.stringify({action:'audio-settings',audioSettings:localMix})}));assert.equal(localSave.status,200);assert.deepEqual((await localSave.json()).audioSettings,localMix);
  await localHandlers.POST(new Request('http://localhost/api/event',{method:'POST',body:JSON.stringify({action:'reset'})}));
  assert.deepEqual((await (await localHandlers.GET(new Request('http://localhost/api/event'))).json()).audioSettings,localMix);
@@ -107,6 +112,6 @@ try{
  for(const [key,value]of Object.entries(old)){if(value===undefined)delete process.env[key];else process.env[key]=value;}
  assert.deepEqual((await db.query('select * from public.other_project_data')).rows,[{id:1,value:'keep me'}]);
  await db.exec('set role anon');assert.equal((await db.query('select value from public.other_project_data')).rows[0].value,'keep me');await db.exec('reset role');
- console.log(`PASS: ${calls} RPC calls against embedded PostgreSQL. Existing-room migration/rerun, audio validation and boundaries, 4-host mix sync, live-launch adjustment, reset preservation, local SQLite migration/cache upgrade, duplicates, concurrent quota cap, pause, boost, unlock, launch, auth, CSRF, private permissions, Vercel fail-closed.`);
+ console.log(`PASS: ${calls} RPC calls against embedded PostgreSQL. Existing-room migration/rerun, audio validation (music 0–100%, SFX 0–120%, including 101%), 4-host mix sync, live-launch adjustment, reset preservation, local SQLite migration/cache upgrade, duplicates, concurrent quota cap, pause, boost, unlock, launch, auth, CSRF, private permissions, Vercel fail-closed.`);
 }finally{await db.close();}
 

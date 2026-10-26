@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Check, Music2, SlidersHorizontal } from 'lucide-react';
-import { parseAudioSettings, type AudioSettings } from '@/lib/audio-settings';
+import { MAX_SFX_VOLUME, parseAudioSettings, type AudioSettings } from '@/lib/audio-settings';
 
 export default function AudioControls({ settings, online, onSaved }: { settings: AudioSettings; online: boolean; onSaved: (settings: AudioSettings) => void }) {
   const [mix, setMix] = useState(settings);
@@ -101,9 +101,9 @@ export default function AudioControls({ settings, online, onSaved }: { settings:
       </div>
       <div className="audio-channel">
         <label htmlFor="sfx-volume"><SlidersHorizontal size={16}/> Sound effects <output htmlFor="sfx-volume">{mix.sfxVolume}%</output></label>
-        <input id="sfx-volume" type="range" min="0" max="100" step="1" value={mix.sfxVolume} disabled={!online}
+        <input id="sfx-volume" type="range" min="0" max={MAX_SFX_VOLUME} step="1" value={mix.sfxVolume} disabled={!online}
           onChange={event => update({ sfxVolume: Number(event.target.value) })} onPointerUp={flush} onKeyUp={flush} onBlur={flush}/>
-        <div className="audio-scale"><span>Mute</span><span>Full volume</span></div>
+        <div className="audio-scale"><span>Mute</span><span>{MAX_SFX_VOLUME}% boost</span></div>
       </div>
     </div>
     <form className="audio-track-form" onSubmit={event => {

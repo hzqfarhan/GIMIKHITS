@@ -1,4 +1,5 @@
 export type AudioSettings = { musicVolume: number; sfxVolume: number; musicUrl: string };
+export const MAX_SFX_VOLUME = 120;
 
 export const DEFAULT_AUDIO_SETTINGS: AudioSettings = Object.freeze({ musicVolume: 25, sfxVolume: 100, musicUrl: '' });
 
@@ -7,7 +8,7 @@ export function parseAudioSettings(value: unknown): AudioSettings | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const { musicVolume, sfxVolume, musicUrl } = value as Record<string, unknown>;
   if (typeof musicVolume !== 'number' || !Number.isInteger(musicVolume) || musicVolume < 0 || musicVolume > 100 ||
-      typeof sfxVolume !== 'number' || !Number.isInteger(sfxVolume) || sfxVolume < 0 || sfxVolume > 100 ||
+      typeof sfxVolume !== 'number' || !Number.isInteger(sfxVolume) || sfxVolume < 0 || sfxVolume > MAX_SFX_VOLUME ||
       typeof musicUrl !== 'string' || musicUrl.length > 2048) return null;
   const url = musicUrl.trim();
   if (url) {

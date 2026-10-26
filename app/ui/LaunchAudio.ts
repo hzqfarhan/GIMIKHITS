@@ -1,3 +1,5 @@
+import { MAX_SFX_VOLUME } from '@/lib/audio-settings';
+
 /** Original synthesised event cues; no external files or autoplay dependency. */
 const SFX_GAIN = 3;
 
@@ -8,7 +10,7 @@ export class LaunchAudio {
   private volume=1;
   private muted=false;
   setVolume(volume:number){
-    this.volume=Math.min(1,Math.max(0,Number.isFinite(volume)?volume:0));
+    this.volume=Math.min(MAX_SFX_VOLUME/100,Math.max(0,Number.isFinite(volume)?volume:0));
     if(this.context&&this.master)this.master.gain.setTargetAtTime(this.muted?0:SFX_GAIN*this.volume,this.context.currentTime,.05);
   }
   async enable(){

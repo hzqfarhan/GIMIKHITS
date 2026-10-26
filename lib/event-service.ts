@@ -82,7 +82,7 @@ async function POST(r: Request) {
       await runtime.DB.prepare("UPDATE event SET paused=1-paused WHERE id=1 AND phase='collecting'").run();
     } else if (body.action === 'audio-settings') {
       const audioSettings = parseAudioSettings(body.audioSettings);
-      if (!audioSettings) return json({error:'Use whole-number sound volumes from 0 to 100 and a valid HTTPS audio link or /media/ path (up to 2,048 characters).'},400);
+      if (!audioSettings) return json({error:'Use whole-number volumes: music from 0 to 100, effects from 0 to 120, and a valid HTTPS audio link or /media/ path (up to 2,048 characters).'},400);
       await runtime.DB.prepare('UPDATE event SET audio_settings=? WHERE id=1').bind(JSON.stringify(audioSettings)).run();
     } else if (body.action === 'settings') {
       const quota = Number(body.value);
