@@ -15,11 +15,11 @@ The older `/activate` and `/control` links remain aliases for audience and bypas
 
 The QR screen places a high-contrast code on the left and a Three.js phone on the right. The phone demonstrates the activation confirmation without contributing to the real count. Its energy readout reflects the live event. The central orb uses an extruded silhouette traced from the supplied HITS logo, with a textured plaque fallback. Space Grotesk and Orbitron are hosted locally; their licenses are included under `public/fonts/`.
 
-The main and QR screens loop **The Final Ascent** while the audience scans and the energy bar fills, then stop the music at 100%. Use **Play waiting music** if the browser requires a click, and **Sound on/off** to control it. Original synthesised cues cover incoming activations and the launch sequence on the main screen; audience phones and bypass controls stay silent. Final video audio remains controlled by the video itself.
+The main and QR screens loop **The Final Ascent** while the audience scans and the energy bar fills. At 100% energy, the music drops to 8% as the access panel unlocks (or stays quieter if its volume was already lower). Once the access code is accepted, the music fades to silence for the launch sequence and video. Use **Play waiting music** if the browser requires a click, and **Sound on/off** to control it. Original synthesised cues cover incoming activations and the launch sequence on the main screen; audience phones and bypass controls stay silent. Final video audio remains controlled by the video itself.
 
 In bypass, **Balance the sound** has independent waiting-music and sound-effect sliders. Music starts at 25% and effects at 100% so incoming activations stay audible. Volume changes save automatically and sync to the main and QR displays; changing the track uses **Apply track**. Choose The Final Ascent or supply a direct HTTPS audio link (or `/media/` path). The mix is kept across refreshes and rehearsal resets. Each presentation screen still needs its initial browser sound permission.
 
-The effects slider supports up to 120% for an extra boost; music remains capped at 100%.
+The effects slider supports up to 200% for an extra boost; music remains capped at 100%. Reset restores the saved waiting-music volume for the next rehearsal.
 
 For local host-routing rehearsal, the four `main.localhost`, `qr.localhost`, `bypass.localhost`, and `audience.localhost` names are supported, retaining port 5173. Some systems require these names to be added to local DNS/hosts; the path routes always work. A localhost QR cannot be reached from an audience phone. Use the hosted audience URL at the venue.
 

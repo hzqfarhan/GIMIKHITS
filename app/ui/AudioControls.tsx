@@ -128,7 +128,7 @@ export default function AudioControls({ settings, online, onSaved }: { settings:
       </div>}
       <button className="button secondary" disabled={!online}>Apply track <Check size={16}/></button>
     </form>
-    <small>Volume changes save automatically. Track changes use Apply track. The launch video keeps its own audio.</small>
+    <small>Volume changes save automatically. Music drops to 8% when the access panel unlocks, then fades out when the code is accepted. Track changes use Apply track. The launch video keeps its own audio.</small>
     <div className={`audio-save-status ${error ? 'has-error' : ''}`} role={error ? 'alert' : 'status'}>
       <span>{error || status}</span>
       {saveFailed && <button type="button" className="text-button" disabled={!online} onClick={() => update({}, true)}>Retry saving</button>}

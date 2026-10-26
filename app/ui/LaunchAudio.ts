@@ -6,6 +6,7 @@ const SFX_GAIN = 3;
 export class LaunchAudio {
   private context:AudioContext|null=null;
   private master:GainNode|null=null;
+  private peakControl:DynamicsCompressorNode|null=null;
   private voices=new Set<AudioScheduledSourceNode>();
   private volume=1;
   private muted=false;
@@ -16,7 +17,14 @@ export class LaunchAudio {
   async enable(){
     this.muted=false;
     this.context??=new AudioContext();
-    if(!this.master){this.master=this.context.createGain();this.master.gain.value=SFX_GAIN*this.volume;this.master.connect(this.context.destination);}
+    if(!this.master){
+      this.master=this.context.createGain();this.master.gain.value=SFX_GAIN*this.volume;
+      // Catch overlapping cue peaks at high gain while retaining quieter detail.
+      this.peakControl=this.context.createDynamicsCompressor();
+      this.peakControl.threshold.value=-6;this.peakControl.knee.value=3;this.peakControl.ratio.value=20;
+      this.peakControl.attack.value=.003;this.peakControl.release.value=.12;
+      this.master.connect(this.peakControl);this.peakControl.connect(this.context.destination);
+    }
     await this.context.resume();this.master.gain.setTargetAtTime(this.muted?0:SFX_GAIN*this.volume,this.context.currentTime,.05);
   }
   mute(){this.muted=true;this.stop();if(this.context&&this.master)this.master.gain.setTargetAtTime(0,this.context.currentTime,.04);}

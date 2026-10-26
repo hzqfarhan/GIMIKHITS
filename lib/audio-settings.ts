@@ -1,5 +1,5 @@
 export type AudioSettings = { musicVolume: number; sfxVolume: number; musicUrl: string };
-export const MAX_SFX_VOLUME = 120;
+export const MAX_SFX_VOLUME = 200;
 
 export const DEFAULT_AUDIO_SETTINGS: AudioSettings = Object.freeze({ musicVolume: 25, sfxVolume: 100, musicUrl: '' });
 

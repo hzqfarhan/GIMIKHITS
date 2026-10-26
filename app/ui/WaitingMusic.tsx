@@ -101,7 +101,7 @@ function WaitingMusicPlayer({ volume, src }: { volume: number; src: string }) {
 
   return <>
     <audio ref={audio} src={src} loop preload="auto" hidden aria-hidden="true"/>
-    {issue && <div role="status" style={{ position: 'fixed', bottom: 56, left: '50%', transform: 'translateX(-50%)', zIndex: 50, display: 'flex', alignItems: 'center', gap: 12, maxWidth: 'calc(100vw - 32px)' }}>
+    {issue && Number.isFinite(volume) && volume > 0 && <div role="status" style={{ position: 'fixed', bottom: 56, left: '50%', transform: 'translateX(-50%)', zIndex: 50, display: 'flex', alignItems: 'center', gap: 12, maxWidth: 'calc(100vw - 32px)' }}>
       {issue === 'unavailable' && <span>Waiting music could not load.</span>}
       <button type="button" className="button secondary" onClick={() => retry.current?.()} style={{ whiteSpace: 'nowrap' }}>
         <Play size={16}/> {issue === 'unavailable' ? 'Retry music' : 'Play waiting music'}
