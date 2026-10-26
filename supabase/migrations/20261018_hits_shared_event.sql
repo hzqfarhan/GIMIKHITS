@@ -6,8 +6,11 @@ create table if not exists hits_room.event (
  id integer primary key check(id=1), epoch text not null, quota integer not null default 100 check(quota between 1 and 100000),
  boost integer not null default 0 check(boost>=0), paused integer not null default 0 check(paused in (0,1)),
  phase text not null default 'collecting' check(phase in ('collecting','launching')), code text not null,
- launched_at bigint, video_url text not null default ''
+ launched_at bigint, video_url text not null default '',
+ audio_settings text not null default '{"musicVolume":25,"sfxVolume":100,"musicUrl":""}'
 );
+-- Upgrade existing rooms too; CREATE TABLE IF NOT EXISTS does not add columns.
+alter table hits_room.event add column if not exists audio_settings text not null default '{"musicVolume":25,"sfxVolume":100,"musicUrl":""}';
 create table if not exists hits_room.activations (epoch text not null, device text not null, primary key(epoch,device));
 create table if not exists hits_room.login_attempts (bucket text primary key, attempts integer not null default 0);
 alter table hits_room.event enable row level security;
@@ -53,6 +56,8 @@ begin
     update hits_room.event set paused=1-paused where id=1 and phase='collecting';
    when 'settings' then
     update hits_room.event set quota=(p_values->>0)::integer,video_url=p_values->>1 where id=1 and phase='collecting';
+   when 'audio_settings' then
+    update hits_room.event set audio_settings=p_values->>0 where id=1;
    when 'launch' then
     update hits_room.event set phase='launching',launched_at=(p_values->>0)::bigint
      where id=1 and epoch=p_values->>1 and code=p_values->>2 and phase='collecting' and n+boost>=quota;

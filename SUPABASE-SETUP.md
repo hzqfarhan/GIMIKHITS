@@ -10,6 +10,8 @@ supabase/migrations/20261018_hits_shared_event.sql
 
 Run it once. It creates private tables and one server-only RPC function. Re-running the migration preserves the existing event. It does not require enabling Realtime or making any table public.
 
+For an existing deployment, re-run this updated SQL before deploying the audio controls. It adds the saved audio mix and updates the restricted RPC without resetting the room. The default is music at 25%, SFX at 100%, and the built-in waiting track. Bypass audio changes synchronize to the presentation screens, work during a launch, and survive rehearsal reset. Local SQLite upgrades automatically, including an older development cache. A Cloudflare D1 deployment must also apply `drizzle/0001_audio_settings.sql` to its database after its original migration.
+
 ## 2. Configure Vercel
 
 Find the project URL and server secret key in Supabase's Connect / API Keys settings. Copy the HTTPS project root URL, not a dashboard URL or database connection string.

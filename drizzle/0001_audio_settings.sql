@@ -1,0 +1,1 @@
+ALTER TABLE `event` ADD `audio_settings` text DEFAULT '{"musicVolume":25,"sfxVolume":100,"musicUrl":""}' NOT NULL;

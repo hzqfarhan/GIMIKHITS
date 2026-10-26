@@ -5,12 +5,19 @@ export class LaunchAudio {
   private context:AudioContext|null=null;
   private master:GainNode|null=null;
   private voices=new Set<AudioScheduledSourceNode>();
-  async enable(){
-    this.context??=new AudioContext();
-    if(!this.master){this.master=this.context.createGain();this.master.gain.value=SFX_GAIN;this.master.connect(this.context.destination);}
-    await this.context.resume();this.master.gain.setTargetAtTime(SFX_GAIN,this.context.currentTime,.05);
+  private volume=1;
+  private muted=false;
+  setVolume(volume:number){
+    this.volume=Math.min(1,Math.max(0,Number.isFinite(volume)?volume:0));
+    if(this.context&&this.master)this.master.gain.setTargetAtTime(this.muted?0:SFX_GAIN*this.volume,this.context.currentTime,.05);
   }
-  mute(){this.stop();if(this.context&&this.master)this.master.gain.setTargetAtTime(0,this.context.currentTime,.04);}
+  async enable(){
+    this.muted=false;
+    this.context??=new AudioContext();
+    if(!this.master){this.master=this.context.createGain();this.master.gain.value=SFX_GAIN*this.volume;this.master.connect(this.context.destination);}
+    await this.context.resume();this.master.gain.setTargetAtTime(this.muted?0:SFX_GAIN*this.volume,this.context.currentTime,.05);
+  }
+  mute(){this.muted=true;this.stop();if(this.context&&this.master)this.master.gain.setTargetAtTime(0,this.context.currentTime,.04);}
   stop(){for(const voice of this.voices){try{voice.stop();}catch{}}this.voices.clear();}
   close(){this.stop();void this.context?.close();}
   private note(frequency:number,duration:number,delay=0,level=.08,end=frequency,type:OscillatorType='sine'){

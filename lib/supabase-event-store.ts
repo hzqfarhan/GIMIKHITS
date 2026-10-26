@@ -12,6 +12,7 @@ const operations = new Map<string, string>([
  [`UPDATE event SET boost=MAX(0,quota-${count}), paused=0 WHERE id=1 AND phase='collecting'`, 'unlock'],
  ["UPDATE event SET paused=1-paused WHERE id=1 AND phase='collecting'", 'pause'],
  ["UPDATE event SET quota=?,video_url=? WHERE id=1 AND phase='collecting'", 'settings'],
+ ['UPDATE event SET audio_settings=? WHERE id=1', 'audio_settings'],
  [`UPDATE event SET phase='launching',launched_at=? WHERE id=1 AND epoch=? AND code=? AND phase='collecting' AND ${count}+boost>=quota`, 'launch'],
 ]);
 type Value = string | number | null;

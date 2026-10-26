@@ -1,5 +1,6 @@
 import type { EventRuntime } from './event-store';
 import { launchLinks } from './launch-routing';
+import { parseAudioSettings, readAudioSettings } from './audio-settings';
 const VIP_ACCESS_CODE = '290978';
 export function createEventHandler(runtime: EventRuntime) {
 const json = (value: unknown, status = 200, cookie?: string, cacheControl = 'private, no-store') => new Response(JSON.stringify(value), {
@@ -17,7 +18,7 @@ async function signature(value: string) {
 async function authorised(_r: Request) {
   return true;
 }
-type EventRow = {id: number; epoch: string; quota: number; boost: number; paused: number; phase: string; code: string; launched_at: number | null; video_url: string; audience: number};
+type EventRow = {id: number; epoch: string; quota: number; boost: number; paused: number; phase: string; code: string; launched_at: number | null; video_url: string; audience: number; audio_settings?: unknown};
 const countSql = '(SELECT COUNT(*) FROM activations WHERE epoch=event.epoch)';
 async function event() {
   const existing = await runtime.DB.prepare(`SELECT *, ${countSql} AS audience FROM event WHERE id=1`).first<EventRow>();
@@ -34,7 +35,7 @@ async function snapshot(r: Request, sharedAudience = false) {
   const phase = row.phase === 'collecting' && total >= row.quota ? 'ready' : row.phase;
   return { epoch:row.epoch, quota:row.quota, total, audience:row.audience, boost:isOperator ? row.boost : undefined,
     paused:!!row.paused, phase, code: !sharedAudience && phase === 'ready' ? VIP_ACCESS_CODE : undefined,
-    launchedAt:row.launched_at, videoUrl:sharedAudience ? '' : row.video_url, activated, operator:isOperator, serverTime:Date.now(), configured:true, links:launchLinks(r.url,runtime.EVENT_BASE_DOMAIN) };
+    launchedAt:row.launched_at, videoUrl:sharedAudience ? '' : row.video_url, audioSettings:sharedAudience ? undefined : readAudioSettings(row.audio_settings), activated, operator:isOperator, serverTime:Date.now(), configured:true, links:launchLinks(r.url,runtime.EVENT_BASE_DOMAIN) };
 }
 async function GET(r: Request) {
   try {
@@ -50,7 +51,7 @@ async function POST(r: Request) {
     if (Number(r.headers.get('content-length') || 0) > 4096) return json({error:'Request too large.'},413);
     const raw = await r.text();
     if (raw.length>4096) return json({error:'Request too large.'},413);
-    let body: {action:string; key?:string; code?:string; value?:number; videoUrl?:string};
+    let body: {action:string; key?:string; code?:string; value?:number; videoUrl?:string; audioSettings?:unknown};
     try { body=JSON.parse(raw); } catch { return json({error:'Invalid request.'},400); }
     if (!body || typeof body.action!=='string') return json({error:'Invalid request.'},400);
     if (body.action === 'login') {
@@ -79,6 +80,10 @@ async function POST(r: Request) {
       await runtime.DB.prepare(`UPDATE event SET boost=MAX(0,quota-${countSql}), paused=0 WHERE id=1 AND phase='collecting'`).run();
     } else if (body.action === 'pause') {
       await runtime.DB.prepare("UPDATE event SET paused=1-paused WHERE id=1 AND phase='collecting'").run();
+    } else if (body.action === 'audio-settings') {
+      const audioSettings = parseAudioSettings(body.audioSettings);
+      if (!audioSettings) return json({error:'Use whole-number sound volumes from 0 to 100 and a valid HTTPS audio link or /media/ path (up to 2,048 characters).'},400);
+      await runtime.DB.prepare('UPDATE event SET audio_settings=? WHERE id=1').bind(JSON.stringify(audioSettings)).run();
     } else if (body.action === 'settings') {
       const quota = Number(body.value);
       if (!Number.isInteger(quota) || quota<1 || quota>100000) return json({error:'The target must be between 1 and 100,000.'},400);

@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { AudioSettings } from '@/lib/audio-settings';
 
 export type LaunchView = 'main' | 'qr' | 'bypass' | 'audience';
 export type LaunchLinks = Record<LaunchView, string>;
@@ -7,7 +8,7 @@ export type EventState = {
   epoch: string; quota: number; total: number; audience: number; boost?: number;
   paused: boolean; phase: string; code?: string; launchedAt: number | null;
   videoUrl: string; activated: boolean; operator: boolean; serverTime: number;
-  configured: boolean; links?: LaunchLinks;
+  configured: boolean; links?: LaunchLinks; audioSettings?: AudioSettings;
 };
 export const LOCAL_LINKS: LaunchLinks = { main: '/', qr: '/qr', bypass: '/bypass', audience: '/audience' };
 export const SEQUENCE_SECONDS = 22;
@@ -21,8 +22,16 @@ export function useLaunch(view: LaunchView) {
   const offset = useRef(0);
   const active = useRef(false);
   const version = useRef(0);
+  const audioRevision = useRef(0);
 
-  const receive = useCallback((value: EventState) => {
+  const syncAudioSettings = useCallback((audioSettings: AudioSettings) => {
+    // A mixer save must invalidate any poll that started before it completed.
+    version.current++;
+    audioRevision.current++;
+    setState(previous => previous ? { ...previous, audioSettings } : previous);
+  }, []);
+
+  const receive = useCallback((value: EventState, preserveAudioSettings = false) => {
     offset.current = value.serverTime - Date.now();
     let locallyActivated = false;
     if (view === 'audience') {
@@ -30,6 +39,7 @@ export function useLaunch(view: LaunchView) {
     }
     setState(previous => ({
       ...value,
+      audioSettings: preserveAudioSettings ? previous?.audioSettings ?? value.audioSettings : value.audioSettings,
       activated: value.activated || locallyActivated || Boolean(previous?.epoch === value.epoch && previous.activated),
     }));
     setOnline(true);
@@ -73,6 +83,7 @@ export function useLaunch(view: LaunchView) {
   async function action(name: string, extra: Record<string, unknown> = {}): Promise<EventState | boolean> {
     if (active.current) return false;
     active.current = true;
+    const requestAudioRevision = audioRevision.current;
     version.current++;
     setBusy(true);
     setError('');
@@ -87,13 +98,13 @@ export function useLaunch(view: LaunchView) {
         if (view === 'audience' && name === 'activate' && result.activated) {
           try { localStorage.setItem(`hits-activated:${result.epoch}`, '1'); } catch {}
         }
-        receive(result);
+        receive(result, requestAudioRevision !== audioRevision.current);
         return result;
       } else {
         const next = await fetch('/api/event', { cache: 'no-store', signal: AbortSignal.timeout(8000) });
         if (!next.ok) throw new Error('Saved. Reconnecting to the event…');
         const nextState = await next.json() as EventState;
-        receive(nextState);
+        receive(nextState, requestAudioRevision !== audioRevision.current);
         return nextState;
       }
     } catch (failure) {
@@ -112,5 +123,5 @@ export function useLaunch(view: LaunchView) {
   }, [state?.phase, state?.launchedAt]);
 
   const progress = state ? Math.min(1, state.total / state.quota) : 0;
-  return { state, online, busy, error, setError, elapsed, progress, action, links: state?.links || LOCAL_LINKS };
+  return { state, online, busy, error, setError, elapsed, progress, action, syncAudioSettings, links: state?.links || LOCAL_LINKS };
 }

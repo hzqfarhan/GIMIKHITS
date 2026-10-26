@@ -4,6 +4,7 @@ export const event = sqliteTable('event', {
   boost:integer('boost').notNull().default(0), paused:integer('paused').notNull().default(0),
   phase:text('phase').notNull().default('collecting'), code:text('code').notNull(),
   launchedAt:integer('launched_at'), videoUrl:text('video_url').notNull().default(''),
+  audioSettings:text('audio_settings').notNull().default('{"musicVolume":25,"sfxVolume":100,"musicUrl":""}'),
 });
 export const activations = sqliteTable('activations', {
   epoch:text('epoch').notNull(), device:text('device').notNull(),

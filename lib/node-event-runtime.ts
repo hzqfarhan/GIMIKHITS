@@ -21,8 +21,11 @@ function createStore(): EventStore {
   const db = new DatabaseSync(filename);
   db.exec(`PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;
     CREATE TABLE IF NOT EXISTS activations (epoch TEXT NOT NULL, device TEXT NOT NULL, PRIMARY KEY(epoch,device));
-    CREATE TABLE IF NOT EXISTS event (id INTEGER PRIMARY KEY NOT NULL, epoch TEXT NOT NULL, quota INTEGER NOT NULL DEFAULT 100, boost INTEGER NOT NULL DEFAULT 0, paused INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'collecting', code TEXT NOT NULL, launched_at INTEGER, video_url TEXT NOT NULL DEFAULT '');
+    CREATE TABLE IF NOT EXISTS event (id INTEGER PRIMARY KEY NOT NULL, epoch TEXT NOT NULL, quota INTEGER NOT NULL DEFAULT 100, boost INTEGER NOT NULL DEFAULT 0, paused INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'collecting', code TEXT NOT NULL, launched_at INTEGER, video_url TEXT NOT NULL DEFAULT '', audio_settings TEXT NOT NULL DEFAULT '{"musicVolume":25,"sfxVolume":100,"musicUrl":""}');
     CREATE TABLE IF NOT EXISTS login_attempts (bucket TEXT PRIMARY KEY NOT NULL, attempts INTEGER NOT NULL DEFAULT 0);`);
+  if (!(db.prepare('PRAGMA table_info(event)').all() as { name: string }[]).some(column => column.name === 'audio_settings')) {
+    db.exec(`ALTER TABLE event ADD COLUMN audio_settings TEXT NOT NULL DEFAULT '{"musicVolume":25,"sfxVolume":100,"musicUrl":""}'`);
+  }
   return {
     prepare: (sql) => new Statement(db, sql),
     async batch(statements) {
@@ -43,7 +46,8 @@ function localSecret() {
   catch { return undefined; }
 }
 
-const globalRuntime = globalThis as typeof globalThis & { __hitsStore?: EventStore };
+const STORE_SCHEMA_VERSION = 1;
+const globalRuntime = globalThis as typeof globalThis & { __hitsStore?: EventStore; __hitsStoreSchemaVersion?: number };
 export function nodeEventRuntime(): EventRuntime {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -51,6 +55,10 @@ export function nodeEventRuntime(): EventRuntime {
     if (!url || !key) throw new Error('Configure SUPABASE_URL and SUPABASE_SECRET_KEY on Vercel; local SQLite is disabled there');
     return { DB: createSupabaseStore(url, key), ORGANISER_KEY: process.env.ORGANISER_KEY, EVENT_BASE_DOMAIN: process.env.EVENT_BASE_DOMAIN };
   }
-  globalRuntime.__hitsStore ??= createStore();
+  // Replace an older development cache once so hot reload also runs migrations.
+  if (!globalRuntime.__hitsStore || globalRuntime.__hitsStoreSchemaVersion !== STORE_SCHEMA_VERSION) {
+    globalRuntime.__hitsStore = createStore();
+    globalRuntime.__hitsStoreSchemaVersion = STORE_SCHEMA_VERSION;
+  }
   return { DB: globalRuntime.__hitsStore, ORGANISER_KEY: localSecret(), EVENT_BASE_DOMAIN: process.env.EVENT_BASE_DOMAIN };
 }
