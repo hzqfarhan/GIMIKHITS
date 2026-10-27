@@ -62,7 +62,7 @@ export default function LaunchExperience({ view }: { view: LaunchView }) {
   }, [ready, unlocking, unlockKey]);
   const progress = videoEnded ? 1 : state && currentQuota > 0 ? Math.min(1, displayTotal / currentQuota) : 0;
   const inVideo = launching && elapsed >= SEQUENCE_SECONDS && !videoEnded && videoSession.epoch === state?.epoch;
-  const waitingMusicVolume = launching || videoEnded ? 0 : ready ? Math.min(audioSettings.musicVolume / 100, .08) : audioSettings.musicVolume / 100;
+  const waitingMusicVolume = videoEnded ? audioSettings.musicVolume / 100 : launching ? 0 : ready ? Math.min(audioSettings.musicVolume / 100, .08) : audioSettings.musicVolume / 100;
   const playbackUrl = !state?.videoUrl || state.videoUrl === '/media/gimik-hits.mp4' ? '/media/gimik-hits-final.mp4' : state.videoUrl;
   const audienceUrl = origin ? new URL(links.audience, origin).href : links.audience;
   const cue = launching ? elapsed >= SEQUENCE_SECONDS ? 'idle' : elapsed >= 12 && elapsed < 17 ? `countdown-${Math.ceil(17-elapsed)}` : phaseAt(elapsed) : ready ? 'ready' : 'idle';
@@ -304,7 +304,7 @@ export default function LaunchExperience({ view }: { view: LaunchView }) {
   const tools = <div className="stage-tools"><div>{status}</div><div>{soundControl}<button onClick={()=>setFocus(!focus)} aria-pressed={focus}>{focus?'Show navigation':'Presentation mode'}</button><button onClick={fullscreen}><Expand size={15}/>Fullscreen</button></div></div>;
 
   return <main className={`experience view-${view} ${focus?'focus-mode':''} ${panelReady?'is-ready':''} ${launching&&!videoEnded?'is-launching':''}`}>
-    {(view==='main'||view==='qr')&&<WaitingMusic active={Boolean(state)&&!inVideo&&!videoEnded} enabled={sound} epoch={state?.epoch} volume={waitingMusicVolume} src={audioSettings.musicUrl || '/media/the-final-ascent.mp3'}/>}
+    {(view==='main'||view==='qr')&&<WaitingMusic active={Boolean(state)&&!inVideo} enabled={sound} epoch={state?.epoch} volume={waitingMusicVolume} src={audioSettings.musicUrl || '/media/the-final-ascent.mp3'}/>}
     <div className="ambient-grid" aria-hidden="true"/><div className="ambient-glow" aria-hidden="true"/><TechBackground/>
     {(view==='audience'||view==='qr')&&<BackgroundScene/>}
     {view==='main'&&<header className="site-header"><a className="brand-lockup" href={links.main} aria-label="HITS main stage"><HitsLogo/><span className="brand-divider"/><span>HUSSEIN INNOVATION<br/>& TALENT SYMPOSIUM</span></a><span className="header-edition">UTHM <i/> LIVE LAUNCH</span></header>}
